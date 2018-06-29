@@ -1,0 +1,22 @@
+This software is covered in the following article:
+
+Oliver Kunc and Felix Fritzen
+Generation of energy-minimizing point sets
+on spheres and their application in mesh-free
+interpolation and differentiation
+
+submitted to --- (June 2018)
+
+
+BIBTEX INFORMATION:
+
+@article{ kunc:fritzen:2018,
+author={Kunc, Oliver and Fritzen, Felix},
+title={{Generation of energy-minimizing point sets on spheres and their application in mesh-free interpolation and differentiation}},
+year={2018},
+volume={-},
+number={-},
+pages={-},
+journal={-},
+keyword={uniform distribution of points on spheres, mesh-free interpolation, kernel interpolation, asymptotic distance probability function of uniform point sets, numerical differentiation}
+}

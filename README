@@ -1,0 +1,48 @@
+------------------------------------
+Content of this file
+------------------------------------
+THIS SOFTWARE IS MAINTAINED VIA
+GITHUB, SEE ANY .H OR .CXX FILE
+FOR MORE INFORMATION
+------------------------------------
+1) How to use
+2) Bug reporting
+3) License information
+------------------------------------
+
+
+1)     HOW TO USE
+===================
+1.1)   REQUIREMENTS
+===================
+       A C++ compiler (e.g. g++) and the GNU GSL library as well as an implementation of LAPACKE are required.
+       (in Debian or Ubuntu systems the command "sudo apt-get install liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0" should suffice)
+
+1.2)   DOCUMENTATION
+====================
+	   See doxygen output in ./doxygen/html/index.html or in ./doxygen/latex/*.pdf
+	   for class documentation (build using command: doxygen ConcentricInterpolation.doxy)
+
+1.3)   COMPILATION and EXAMPLE
+==============================
+1.3a)  For the LIBRARY, go to the "src" directory and run "make lib" on a terminal (adjust Makefile if required)
+1.3b)  For an EXAMPLE, change to the "examples" directory. Call
+	   make demo
+       therein. Execution of the demo: change to the "bin" directory and execute
+	   ./interpolation_demo ../data/directions/demo/dir_D3_N256_s0_e0.txt ../data/directions/demo/dir_D3_N10000_EQ.txt ../data/demo_output.txt
+	   Plot results: change to the data directory and execute (requires additional software)
+       gnuplot plot_3d_data.gp
+       Follow the instructions on the terminal. This shows the result interpolating the function [0 0 1] * x at radius 5.
+
+
+2) BUG REPORTING
+================
+Please report bugs to the administrators of the corresponding github repository .... TODO INSERT LINK TO GITHUB REPO HERE ... or direcly e-mail
+        felix.fritzen@mechbau.uni-stuttgart.de
+or
+        oliver.kunc@mechbau.uni-stuttgart.de
+
+
+3) LICENSE INFORMATION
+======================
+See file LICENSE
