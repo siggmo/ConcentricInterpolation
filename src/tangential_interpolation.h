@@ -9,11 +9,15 @@
 #include <iostream>
 #include <lapacke.h>
 #include <util.h>
+#include <cblas.h>
 
 class TangentialInterpolation;
+class TangentialInterpolationPseudoSym;
 
 class TangentialInterpolation {
-    private:
+private:
+protected:
+
     bool        sym;                //!< exploit point symmetry (only one ray of data points must be provided)
     bool        init;               //!< initialization flag
     int         N_alloc;            //!< dimension of the pre-allocated memory
@@ -77,19 +81,26 @@ public:
      * */
     void Weights(
         double * o_W,       /*!< [out] vector \c W of weights */
-        const double * a_x, /*!< [in] vector/direction \c X */
+        const int n_dirs, /*!< [in] number of directions in a_x */
+        const double * a_x, /*!< [in] n_dirs x dim matrix of directions (row-wise) \c X */
         double * o_zeta,    /*!< [out] vector \c W of zeta values (if not needed set to NULL) */
         double * o_dzeta,   /*!< [out] vector \c W of dzeta values (if not needed set to NULL) */
         double * o_ddzeta   /*!< [out] vector \c W of dzeta values (if not needed set to NULL) */
                 );
   
+//     void Weights(
+//         int    n_vec,       /*!< [in]  number of input vector */
+//         double * o_W,       /*!< [out] (n x n_vec) matrix \c W of weights */
+//         const double * a_x, /*!< [in]  (n_vec x D) matrix containing directions as /direction \c X */
+//         double * w_d        /* sufficiently large working array of doubles */ );
+
     //! short-cut to Weights( ... ) [see above]
     void operator() (         double * o_W,       /*!< [out] vector \c W of weights */
         const double * a_x, /*!< [in] vector/direction \c X */
         double * o_zeta,    /*!< [out] vector \c W of zeta values (if not needed set to NULL) */
         double * o_dzeta,   /*!< [out] vector \c W of dzeta values (if not needed set to NULL) */
         double * o_ddzeta   /*!< [out] vector \c W of dzeta values (if not needed set to NULL) */
-                ) { Weights( o_W, a_x, o_zeta, o_dzeta, o_ddzeta ); }
+                ) { Weights( o_W, 1, a_x, o_zeta, o_dzeta, o_ddzeta ); }
 
     /*! \brief Add a new direction
      * 
@@ -119,12 +130,7 @@ public:
      * \see InitializeKernelMethod
      * 
      * */
-    void    SetGamma( const double a_gamma /*!< [in] new kernel parameter */ )
-    {
-        gamma = a_gamma;
-        if(init)    { RecomputeKernelMatrix(); }
-        else        { InitializeKernelMethod();}
-    }
+    void    SetGamma( const double a_gamma /*!< [in] new kernel parameter */ );
 
     /*! \brief change the regression parameter (adds some smoothness) */
     void SetLambda( const double a_lambda );
@@ -137,7 +143,7 @@ public:
      * \see InitializeKernelMethod
      * 
      * */
-    void    RecomputeKernelMatrix( ); // TODO OK: can/should this be private?
+    virtual void    RecomputeKernelMatrix( ); // TODO OK: can/should this be private?
     
     /*! \brief (Re-)Compute the kernel matrix and its inverse
      * 
@@ -150,5 +156,37 @@ public:
     
 }; /* class TangentialInterpolation */
 
+
+class TangentialInterpolationPseudoSym : public TangentialInterpolation {
+private:
+    double *m_Kdiff, *m_Kdiff_f; //!< the matric and its factorization of the difference kernel matrix
+    int         * w_diff_i;              //!< integer working array for linear solver (IPIV in LAPACK)
+    double      * w_s; //!< zeta_star and symmtric weights
+    void zero_pointers();
+public:
+    TangentialInterpolationPseudoSym();
+    ~TangentialInterpolationPseudoSym();
+    void Free();
+    void Allocate( int a_N_alloc, const int a_D );
+
+    void RecomputeKernelMatrix();
+    
+    void Weights(
+        double * o_W,       /*!< [out] vector \c W of weights */
+        const int n_dirs,   /*!< [in] number of vectors contained in \c X */
+        const double * a_x, /*!< [in] vector(s) [row-matrix of size n_dirs x D] \c X */
+        double * o_zeta,    /*!< [out] vector \c W of zeta values (if not needed set to NULL) */
+        double * o_dzeta,   /*!< [out] vector \c W of dzeta values (if not needed set to NULL) */
+        double * o_ddzeta   /*!< [out] vector \c W of dzeta values (if not needed set to NULL) */
+                );
+//    void Weights(
+//         int    n_vec,       /*!< [in]  number of input vector */
+//         double * o_W,       /*!< [out] (n x n_vec) matrix \c W of weights */
+//         const double * a_x, /*!< [in]  (n_vec x D) matrix containing directions as /direction \c X */
+//         double * w_d        /* sufficiently large working array of doubles */ );
+
+   const double * const SymWeights() const { return w_s; }
+    
+};
 
 #endif /* _TANGENTIAL_INTERPOLATION_H_ */
