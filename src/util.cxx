@@ -151,7 +151,7 @@ double ** UTILITY::ReadMatrix( int *r, int *c, const char * fn, const int NMAX_L
     return matrix;
 }
 /* *************************************************************************************** */
-void UTILITY::print_matrix( double * a, const int m, const int n, FILE * F )
+void UTILITY::print_matrix( const double * a, const int m, const int n, FILE * F )
 {
     assert_msg( m>0, "error in print_matrix: m>0 required\n");
     assert_msg( n>0, "error in print_matrix: n>0 required\n");
@@ -166,17 +166,13 @@ void UTILITY::print_matrix( double * a, const int m, const int n, FILE * F )
     }
 }
 /* *************************************************************************************** */
-void UTILITY::assert_msg( const bool condition, const char * str, const bool quit ) 
+void UTILITY::assert_msg( const bool condition, const char * str, const bool quit, FILE * outputstream ) 
 {
     if(condition)
         return;
-    fprintf(stderr, "%s", str );
-    fflush( stderr );
+    fprintf(outputstream, "%s", str );
+    fflush( outputstream );
     
-    if( stdout != stderr ) {
-        fprintf( stdout, "%s", str );
-        fflush( stdout );
-    }
     if(quit)
         exit( DEFAULT_ERROR_CODE );
 }

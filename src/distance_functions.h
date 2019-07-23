@@ -2,9 +2,11 @@
 #define __DISTANCE_FUNCTIONS_H__
 
 /*
+ *  COPYRIGHT NOTES
+ * 
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( felix.fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( oliver.kunc@mechbau.uni-stuttgart.de )
+ *  Copyright (C) 2019  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
+ *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,23 +20,32 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *  (the full license is distributed together with the software in a file named
+ *  LICENSE)
+ *
+ *  This software package is related to the research article
+ * 
+ *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
+ *                                     sets on spheres and their application in
+ *                                     mesh-free interpolation and
+ *                                     differentiation'
+ *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
+ *     DOI   ...
+ *     URL   dx.doi.org/...
  *  
- *  
- *  For details or if you like this software please refer to LITERATURE which
- *  contains also BIBTEX information.
- *  
- *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *  
+ *  The latest version of this software can be obtained through
+ *  https://github.com/EMMA-Group/ConcentricInterpolation
  *  
  */
 
 #include <cmath>
 #include <stdio.h>
 
-// FF: documentation still missing
-
 const double DistanceFunction_TOL = 1.e-5;
 
+/** \brief Parent class for local distance functions, where <b>local means pointwise</b>
+ *  \see objective_functions.h
+ */
 class DistanceFunction_local
 {
 public:
@@ -42,6 +53,9 @@ public:
     virtual double eval_vector(const double * f1, const double * f2, const int D) = 0;
 };
 
+/** \brief Parent class for global distance functions, which <b>acts on the local distance</b>
+ *  \see objective_functions.h
+ */
 class DistanceFunction_global
 {
 public:
@@ -49,32 +63,45 @@ public:
 };
 
 
-
-class Dist_RelDiff_local : public DistanceFunction_local
+/** TODO 
+ * \see objective_functions.h
+ */
+class Dist_local_RelDiff : public DistanceFunction_local
 {
     double eval_scalar(const double f1, const double f2);
     double eval_vector(const double * f1, const double * f2, const int D);
 };
 
-class Dist_AbsDiff_local : public DistanceFunction_local
+/** TODO 
+ * \see objective_functions.h
+ */
+class Dist_local_AbsDiff : public DistanceFunction_local
 {
     double eval_scalar(const double f1, const double f2);
     double eval_vector(const double * f1, const double * f2, const int D);
 };
 
 
-
-class Dist_Mean_global : public DistanceFunction_global
+/** TODO 
+ * \see objective_functions.h
+ */
+class Dist_global_Mean : public DistanceFunction_global
 {
     double eval(const double * f, const int P);
 };
 
-class Dist_RMS_global : public DistanceFunction_global
+/** TODO 
+ * \see objective_functions.h
+ */
+class Dist_global_RMS : public DistanceFunction_global
 {
     double eval(const double * f, const int P);
 };
 
-class Dist_Max_global : public DistanceFunction_global
+/** TODO 
+ * \see objective_functions.h
+ */
+class Dist_global_Max : public DistanceFunction_global
 {
     double eval(const double * f, const int P);
 };

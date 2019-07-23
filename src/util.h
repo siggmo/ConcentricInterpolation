@@ -2,9 +2,11 @@
 #define _UTIL_H_
 
 /*
+ *  COPYRIGHT NOTES
+ * 
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( felix.fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( oliver.kunc@mechbau.uni-stuttgart.de )
+ *  Copyright (C) 2019  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
+ *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,13 +20,21 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *  (the full license is distributed together with the software in a file named
+ *  LICENSE)
+ *
+ *  This software package is related to the research article
+ * 
+ *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
+ *                                     sets on spheres and their application in
+ *                                     mesh-free interpolation and
+ *                                     differentiation'
+ *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
+ *     DOI   ...
+ *     URL   dx.doi.org/...
  *  
- *  
- *  For details or if you like this software please refer to LITERATURE which
- *  contains also BIBTEX information.
- *  
- *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *  
+ *  The latest version of this software can be obtained through
+ *  https://github.com/EMMA-Group/ConcentricInterpolation
  *  
  */
 
@@ -58,12 +68,12 @@ double **   ReadMatrix(  int *r             /*!<[out] number of read rows*/,
                          const char * fn,   /*!<[in] name of the file containing the directions*/
                          const int NMAX_LINES=32768, const int NMAX_COL=32 );
 //! dump a pseudo-2d-matrix or an array to a stream. if array, set m = 1.
-void        print_matrix(   double * a/*!<[in] 1-d or pseudo 2-d pointer*/,
+void        print_matrix(   const double * a/*!<[in] 1-d or pseudo 2-d pointer*/,
                             const int m/*!<[in] number of rows*/,
                             const int n/*!<[in] number of columns*/,
                             FILE * F = stdout/*!<[in] stream pointer*/);
-//! simple assert command: prints str to stderr if condition is false. if quit is true, it then also exits with DEFAULT_ERROR_CODE
-void        assert_msg(const bool condition, const char *str, const bool quit=true );
+//! simple assert command: prints str to outputstream if condition is false. if quit is true, it then also exits with DEFAULT_ERROR_CODE
+void        assert_msg(const bool condition, const char *str, const bool quit=true, FILE * outputstream=stderr );
 
 
 /* *************************************************************************************** */
@@ -124,7 +134,15 @@ inline double safeAcos( const double a ) {
 }; //!< safe implementation of \c arccos, i.e. data range is truncated to [-1,1]
 
 
-
+inline void SolveForQuadraticCoefficients(   const double r0, const double r1, const double r2, // coordinates
+                                        const double s0, const double s1, const double s2,      // right-hand side
+                                        double &a, double &b, double &c                         // polynomial coefficients
+                                    )
+{
+    a = (r0*r1*s2)/(r0*r1 - r0*r2 - r1*r2 + r2*r2) - (r1*r2*s0)/(r0*r1 + r0*r2 - r1*r2 - r0*r0) - (r0*r2*s1)/(r0*r1 - r0*r2 + r1*r2 - r1*r1);
+    b = (s0*(r1 + r2))/(r0*r1 + r0*r2 - r1*r2 - r0*r0) - (s2*(r0 + r1))/(r0*r1 - r0*r2 - r1*r2 + r2*r2) + (s1*(r0 + r2))/(r0*r1 - r0*r2 + r1*r2 - r1*r1);
+    c = s2/(r0*r1 - r0*r2 - r1*r2 + r2*r2) - s0/(r0*r1 + r0*r2 - r1*r2 - r0*r0) - s1/(r0*r1 - r0*r2 + r1*r2 - r1*r1);
+}
 
 
 

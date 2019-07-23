@@ -44,7 +44,7 @@ ConcentricInterpolation::ConcentricInterpolation( const bool a_sym )
     N_alloc     = 0;
     lambda      = 0.;
     D       = 0;
-    gamma       = 0;
+    gamma       = 0./0.; // make sure results are NaN if gamma has not been set. except for zero radius, Interpolate() will always output zero.
 //  s_type      = 1; // assume: quadratic functions to the left and to the right
     zero_pointers();
 }
@@ -88,6 +88,7 @@ void ConcentricInterpolation::Allocate( int a_N_alloc, const int a_D )
     D   = a_D;
     N       = 0;
     S       = new CubicInterpolant [N_alloc];
+    Sq      = new QuadraticInterpolant [N_alloc];
 
     active  = new bool [ N_alloc ];
     assert_msg( active != 0, "ERROR in ConcentricInterpolation::Allocate: could not allocate memory for 'active'\n");
@@ -158,7 +159,7 @@ void    ConcentricInterpolation::GetTrainingRadii( double * a_training_radii, in
 /* *************************************************************************************** */
 void ConcentricInterpolation::AddInterpolationDataDF( const double * a_radii, const double * a_f, const double * a_df, int a_n, const double * a_X )
 {
-    assert_msg( N < N_alloc, "ERROR in ConcentricInterpolation::AddInterpolationData: allocation size too small (trying to add another entry although n=N_alloc)\n");
+    assert_msg( N < N_alloc, "ERROR in ConcentricInterpolation::AddInterpolationDataDF: allocation size too small (trying to add another entry although n=N_alloc)\n");
     init = false; // reset initialization flag since kernel matrix needs to be re-computed!
         
     S[N].SetData( a_n, a_radii, a_f, a_df );
@@ -182,7 +183,7 @@ double ConcentricInterpolation::Interpolate( const double * a_x )
         }
         
         double f, df, ddf;
-        f=S[0].Interpolate( 0., df, ddf);
+        f=Sq[0].Interpolate( 0., df, ddf);
         SetVector( dv, N, df );
         SetVector( ddv, N, ddf );
         return f;
@@ -211,6 +212,7 @@ double ConcentricInterpolation::Interpolate( const double * a_x )
             sin_xi[n]   = sqrt( 1.-theta[n]*theta[n]); // sin(xi[n]);
         }
     }
+    
     // symmetric case:
     if( sym )
     {
@@ -508,7 +510,7 @@ void ConcentricInterpolation::RadialInterpolation( const double a_radius )
 {
     // apply pcw cubic function interpolation (and compute also the first and second derivatives at all nodes)
     radius = a_radius;
-    for( int n=0; n<N; n++ )    v[n]    = S[n].Interpolate(radius, dv[n], ddv[n]);
+    for( int n=0; n<N; n++ )    v[n]    = Sq[n].Interpolate(radius, dv[n], ddv[n]);
 }
 /* *************************************************************************************** */
 bool ConcentricInterpolation::CheckRadius( const double * a_radii, const int a_R ) const
