@@ -1,7 +1,7 @@
 ### for debugging try:
-# OPT=-O0 -g
+OPT=-O0 -g
 ### for performance related builds use
-OPT=-O6
+# OPT=-O6
 AR=ar
 CXX=g++
 INC=-I.
@@ -28,10 +28,10 @@ lib:		util interpolation cubic quadratic data data_util dist_func obj_func TI RI
 	        data.o				\
 	        data_util.o			\
 	        distance_functions.o		\
-	        objective_functions.o		\
-	        quadratic_interpolant.o		\
 	        tangential_interpolation.o	\
-	        radial_interpolation.o
+	        radial_interpolation.o		\
+	        objective_functions.o		\
+	        quadratic_interpolant.o
 
 clean:
 	rm -rf *.o
@@ -73,3 +73,9 @@ dist_func:
 
 obj_func:
 	$(CXX) $(OPT) -c objective_functions.cxx $(INC)
+
+TI:
+	$(CXX) $(OPT) -c tangential_interpolation.cxx $(INC)
+
+RI:
+	$(CXX) $(OPT) -c radial_interpolation.cxx $(INC)
