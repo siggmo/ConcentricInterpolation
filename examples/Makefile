@@ -14,13 +14,12 @@ OPT=-O6
 CXX=g++
 BINDIR=../bin
 
+default:	demo
 
 demo:	interpolation_demo.cxx
-	make analytical
-	make create
 	make -C ../src lib
 	$(CXX) $(OPT) -c interpolation_demo.cxx $(INC)
-	$(CXX) $(OPT) analytical_functions.o create_data.o interpolation_demo.o -o $(BINDIR)/interpolation_demo $(LIB)
+	$(CXX) $(OPT) interpolation_demo.o -o $(BINDIR)/interpolation_demo $(LIB)
 
 clean:
 	rm -rf *.o
@@ -28,9 +27,3 @@ clean:
 distclean:
 	make clean
 	make -C ../src distclean
-	
-analytical:	
-	$(CXX) $(OPT) -c analytical_functions.cxx -I../src
-
-create:
-	$(CXX) $(OPT) -c create_data.cxx -L../src -I../src

@@ -34,18 +34,18 @@ void InterpolateOnSet(  ConcentricInterpolation * interpolation,
                         const bool evaluate_hessians
                      )
 {
+    assert_msg( interpolation->GetGamma() > 0 , "WARNING in InterpolateOnSet: gamma must be > 0, except for zero radius.\n", false);
     assert_msg( !( evaluate_hessians && !evaluate_gradients ) , "ERROR in InterpolateOnSet: if evaluate_hessians == true, then evaluate_gradients must also be true\n");
-//     progress::init(); /* optional progress visualization on shell */
+    progress::init(); /* optional progress visualization on shell */
     const int P = data_interpolation->P;
     for(int p=0; p<P; p++)
     {
-//         progress::display(p, P-1); /* optional progress display on shell */
+        progress::display(p, P-1); /* optional progress display on shell */
         // interpolate value
         data_interpolation->SafeAccess_values(p) = interpolation->Interpolate( data_interpolation->SafeAccess_coord(p) );
         // get gradient, optional
-        if( evaluate_gradients ){
+        if( evaluate_gradients )
             interpolation->Gradient( data_interpolation->SafeAccess_gradients(p) );
-        }
         // get hessian, optional
         if( evaluate_hessians )
             interpolation->Hessian( data_interpolation->SafeAccess_hessians(p) );
@@ -59,9 +59,9 @@ P(-1)
 {
     interpolation = 0;
     data_reference = 0;
-    dist_values_local = 0;
-    dist_gradients_local = 0;
-    dist_hessians_local = 0;
+    dist_local_values = 0;
+    dist_local_gradients = 0;
+    dist_local_hessians = 0;
     distfunc_local = 0;
     distfunc_global = 0;
     objective_function = 0;
@@ -83,23 +83,23 @@ distfunc_global(a_distfunc_global),
 objective_function(a_objective_function)
 {
     // allocate memory for 
-    dist_values_local = new double[P];
-    dist_gradients_local = new double[P];
-    dist_hessians_local = new double[P];
+    dist_local_values = new double[P];
+    dist_local_gradients = new double[P];
+    dist_local_hessians = new double[P];
 }
 
 TestOnSet::~TestOnSet()
 {
-    delete[] dist_values_local; dist_values_local=0;
-    delete[] dist_gradients_local; dist_gradients_local=0;
-    delete[] dist_hessians_local; dist_hessians_local=0;
+    delete[] dist_local_values; dist_local_values=0;
+    delete[] dist_local_gradients; dist_local_gradients=0;
+    delete[] dist_local_hessians; dist_local_hessians=0;
 }
 
 double TestOnSet::run(  const bool evaluate_gradients,
                         const bool evaluate_hessians
               )
 {
-    // NOTE: consistency check !( evaluate_hessians && !evaluate_gradients ) is done in InterpolateOnSet
+    // consistency check !( evaluate_hessians && !evaluate_gradients ) is done in InterpolateOnSet
     
     // run the interpolation on data_interpolation.coordinates
     InterpolateOnSet( interpolation, &data_interpolation, evaluate_gradients, evaluate_hessians);
@@ -107,24 +107,24 @@ double TestOnSet::run(  const bool evaluate_gradients,
     // compute the point-wise distances between interpolated data and reference data
     for(int p=0; p<P; p++)
     {
-        dist_values_local[p] = distfunc_local->eval_scalar( data_interpolation.SafeAccess_values(p), data_reference->SafeAccess_values(p) );
+        dist_local_values[p] = distfunc_local->eval_scalar( data_interpolation.SafeAccess_values(p), data_reference->SafeAccess_values(p) );
         if(evaluate_gradients)
-            dist_gradients_local[p] = distfunc_local->eval_vector( data_interpolation.SafeAccess_gradients(p), data_reference->SafeAccess_gradients(p), D );
+            dist_local_gradients[p] = distfunc_local->eval_vector( data_interpolation.SafeAccess_gradients(p), data_reference->SafeAccess_gradients(p), D );
         if(evaluate_hessians)
-            dist_hessians_local[p] = distfunc_local->eval_vector( data_interpolation.SafeAccess_hessians(p), data_reference->SafeAccess_hessians(p), D*D );
+            dist_local_hessians[p] = distfunc_local->eval_vector( data_interpolation.SafeAccess_hessians(p), data_reference->SafeAccess_hessians(p), D*D );
     }
     
     // compute the global distances
-    double dist_values_global    = distfunc_global->eval(dist_values_local, P);   /* distance of interpolated values to reference values */
-    double dist_gradients_global = 0;
-    double dist_hessians_global = 0;
+    double dist_global_values    = distfunc_global->eval(dist_local_values, P);   /* distance of interpolated values to reference values */
+    double disg_global_gradients = 0;
+    double dist_global_hessians = 0;
     if(evaluate_gradients)
-        dist_gradients_global = distfunc_global->eval(dist_gradients_local, P);/* distance of interpolated gradients to reference gradients */
+        disg_global_gradients = distfunc_global->eval(dist_local_gradients, P);/* distance of interpolated gradients to reference gradients */
     if(evaluate_hessians)
-        dist_hessians_global  = distfunc_global->eval(dist_hessians_local, P); /* distance of interpolated Hessians to reference Hessians */
+        dist_global_hessians  = distfunc_global->eval(dist_local_hessians, P); /* distance of interpolated Hessians to reference Hessians */
     
     // return the value of the objective function
-    return objective_function(dist_values_global, dist_gradients_global, dist_hessians_global);
+    return objective_function(dist_global_values, disg_global_gradients, dist_global_hessians);
 }
 /* *************************************************************************************** */
 double    OptimizeGamma(ConcentricInterpolation * interpolation,
@@ -148,7 +148,7 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
     assert_msg(bisection_factor>0 && bisection_factor<2, "ERROR in OptimizeGamma : it must hold    0 < bisection_factor < 2  \n");
 
     
-    printf("$$$ Beginning optimization of gamma with the following parameters:\n");
+    printf("\r$$$ Beginning optimization of gamma with the following parameters:\n");
     printf("$   gamma_min        = %lf\n", gamma_min);
     printf("$   gamma_max        = %lf\n", gamma_max);
     printf("$   num_regular      = %i\n", num_regular);
@@ -177,7 +177,7 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
         interpolation->SetGamma(gammas[igamma]);
         obj_fcn_value[igamma] = test_object.run( do_gradients, do_hessians );
         obj_fcn_value_min = obj_fcn_value[igamma];
-        printf("\r  %4i  %f\t%14.8le         !\n", igamma, gammas[igamma], obj_fcn_value[igamma]);  // \r is carriage return for output of progress (called from InterpolateOnSet)
+        printf("\r  %4i     %f       %5.3le         !\n", igamma, gammas[igamma], obj_fcn_value[igamma]);  // \r is carriage return for output of progress (called from InterpolateOnSet)
     } catch(int e) {
         fprintf(stderr, "\nEXCEPTION CAUGHT (%i) in OptimizeGamma : gamma_min doesn't work, probably too small.\n", e);
         exit(-1);
@@ -186,7 +186,7 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
     {
         interpolation->SetGamma(gammas[igamma]);
         obj_fcn_value[igamma] = test_object.run( do_gradients, do_hessians );
-        printf("\r  %4i  %f     %14.8le", igamma, gammas[igamma], obj_fcn_value[igamma]);
+        printf("\r  %4i     %f       %5.3le", igamma, gammas[igamma], obj_fcn_value[igamma]);
         if(obj_fcn_value[igamma]<obj_fcn_value_min)
         {
             printf("         !");
@@ -197,7 +197,7 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
         fflush(stdout);
     }
     double gamma_best = gammas[ind_gamma_best];
-    printf("$   regular gamma optimization finished! best gamma is %lf with index %i giving obj_fcn_value %14.8le\n", gammas[ind_gamma_best], ind_gamma_best, obj_fcn_value_min);
+    printf("$   regular gamma optimization finished! best gamma is %lf with index %i giving obj_fcn_value %5.3le\n", gammas[ind_gamma_best], ind_gamma_best, obj_fcn_value_min);
     // finish regular optimization by assuring that the best gamma is not on the boundary
     assert_msg(ind_gamma_best!=0 && ind_gamma_best!= num_regular+1, "ERROR in OptimizeGamma : gamma_best is on boundary. restart with different boundaries.\n");
 
@@ -210,35 +210,35 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
     {
         gamma_2 = gammas[ind_gamma_best-1];
         obj_fcn_value_2 = obj_fcn_value[ind_gamma_best-1];
-        printf("$      best neighbor is next smaller gamma (%lf) with obj_fcn_value %14.8le\n", gamma_2, obj_fcn_value_2);
+        printf("$      best neighbor is next smaller gamma (%lf) with obj_fcn_value %5.3le\n", gamma_2, obj_fcn_value_2);
     }
     else
     {
         gamma_2 = gammas[ind_gamma_best+1];
         obj_fcn_value_2 = obj_fcn_value[ind_gamma_best+1];
-        printf("$      best neighbor is next larger gamma (%lf) with obj_fcn_value %14.8le\n", gamma_2, obj_fcn_value_2);
+        printf("$      best neighbor is next larger gamma (%lf) with obj_fcn_value %5.3le\n", gamma_2, obj_fcn_value_2);
     }
     
     // do the bisection, i.e. evaluate within the interval and compare with the outer values
     if(num_bisec>0)
-        printf("\n$   beginning bisection\n$ #gamma  gamma  \t  obj_fcn_value measure     new min?\n");
+        printf("\n$   beginning bisection\n$ #gamma     gamma      obj_fcn_value      new min?\n");
     double          gamma_mid               = -1;
     double          obj_fcn_value_mid       = 9e99;
     bool            keep_best_gamma         = false;
-    const double    gamma_change_tol        = 1.e-8; // TODO outsource into new header
-    const double    obj_fcn_value_change_tol= 1.e-5; // TODO outsource into new header
+    const double    gamma_change_tol        = 1.e-8;
+    const double    obj_fcn_value_change_tol= 1.e-5;
     for(int it_bisec=0; it_bisec<num_bisec; it_bisec++)
     {
         gamma_mid = gamma_best + (gamma_2-gamma_best)*0.5*bisection_factor;
         if( fabs(gamma_mid-gamma_best)<gamma_change_tol )
         {
-            printf("\n$   quitting bisection because gamma change is below tolerance (%14.8le).\n", gamma_change_tol);
+            printf("\n$   quitting bisection because gamma change is below tolerance (%5.3le).\n", gamma_change_tol);
             interpolation->SetGamma(gamma_best);
             break;
         }
         interpolation->SetGamma(gamma_mid);
         obj_fcn_value_mid = test_object.run( do_gradients, do_hessians );
-        printf("\n  %4i  %14.8le\t%14.8le", it_bisec, gamma_mid, obj_fcn_value_mid); fflush(stdout);
+        printf("\r  %4i     %f       %5.3le", it_bisec, gamma_mid, obj_fcn_value_mid); fflush(stdout);
         if(obj_fcn_value_mid<obj_fcn_value_min)
         {
             printf("         !");
@@ -253,9 +253,10 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
             gamma_2 = gamma_mid;
             keep_best_gamma = true;
         }
+        printf("\n");
         if( (obj_fcn_value_2-obj_fcn_value_min)/obj_fcn_value_min < obj_fcn_value_change_tol )
         {
-            printf("$   quitting bisection due to low relative obj_fcn_value change (tolerance is %14.8le)\n", obj_fcn_value_change_tol);
+            printf("$   quitting bisection due to low relative obj_fcn_value change (tolerance is %5.3le)\n", obj_fcn_value_change_tol);
             // before quitting, set gamma to be the current best gamma
             if(keep_best_gamma)
                 interpolation->SetGamma(gamma_best);
@@ -264,7 +265,7 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
         keep_best_gamma = false;
     }
     
-    printf("$   finished gamma optimization with gamma = %14.8le yielding obj_fcn_value %14.8le\n", gamma_best, obj_fcn_value_min);
+    printf("$   finished gamma optimization with gamma = %5.3le yielding obj_fcn_value %5.3le\n", gamma_best, obj_fcn_value_min);
     
     // terminate
     delete [] obj_fcn_value; obj_fcn_value = 0;

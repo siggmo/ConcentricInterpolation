@@ -166,17 +166,13 @@ void UTILITY::print_matrix( const double * const a, const int m, const int n, FI
     }
 }
 /* *************************************************************************************** */
-void UTILITY::assert_msg( const bool condition, const char * str, const bool quit ) 
+void UTILITY::assert_msg( const bool condition, const char * str, const bool quit, FILE * outputstream ) 
 {
     if(condition)
         return;
-    fprintf(stderr, "%s", str );
-    fflush( stderr );
+    fprintf(outputstream, "%s", str );
+    fflush( outputstream );
     
-    if( stdout != stderr ) {
-        fprintf( stdout, "%s", str );
-        fflush( stdout );
-    }
     if(quit)
         exit( DEFAULT_ERROR_CODE );
 }

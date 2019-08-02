@@ -1,0 +1,14 @@
+filename scheme:
+D   = dimension of Euclidean space, i.e. for points on the d-sphere: D=d+1
+N   = number of points
+sym = symmetry flag: 1 means symmetrized kernel was used, 0 means usual kernel was used
+s   = case index: -2 means LOG, -1 means log, >0 means Riesz
+EQ  = Equal Area points
+
+storage format:
+.txt: tab and space separated numbers, N-by-D entries
+
+example:
+D4_N512_sym0_s-2.txt
+   Contains 512 rows, each with 4 columns, consisting of the coordinates of 512
+   LOG-optimal points on S^3, without the use of symmetrization.

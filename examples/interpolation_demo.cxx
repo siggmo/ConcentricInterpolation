@@ -1,197 +1,162 @@
 #include "concentric_interpolation.h"   // the main program
-#include "create_data.h"                // create data sets
 #include "data_util.h"                  // utility functions concerning data. includes the kernel parameter optimization
 #include "objective_functions.h"        // objective functions with respecto to which the kernel parameter may be optimized
-
-/*
- *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( felix.fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( oliver.kunc@mechbau.uni-stuttgart.de )
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *  
- *  
- *  For details or if you like this software please refer to LITERATURE which
- *  contains also BIBTEX information.
- *  
- *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *  
- *  
- */
+#include "quadratic_interpolant.h"      // piecewise quadratic polynomials for radial interpolation. see also "cubic_interpolant.h"
 
 
 int main(int argc, char* argv[])
 {
-    /* here is the input data.
-    *  for convenience, this could in general be read in from a parameter file during runtime.
-    *  however this is just a minimum working example.
-    *  on Linux, filenames must be the absolute path, i.e. relative to root directory "/"
-    */
+    // all arguments are passed via the command line.
+    // a gamma argument must be given in any case. if gamma search is performed (see below), then the gamma argument from the command line will be ignored.
+    assert_msg(argc==7, "USAGE: [this] [filename training directions] [filename training data] [filename validation directions] [filename validtion data] [filename of output file] [gamma]\n");
     
-    // filenames
-    if(argc!=4)
-    {
-        fprintf(stderr, "USAGE: [this] [filename training dirs] [filename target dirs] [filename of output file]\n");
-        exit(-1);
-    }
-    
-    char    DIRS_FN_TRAINING[512];  // name of textfile containing the training directions, e.g. created by the MATLAB program. each row is one direction.
-    char    DIRS_FN_TARGET[512];    // name of textfile containing the target directions, e.g. created by the MATLAB programm. each row is one direction
-    char    FN_OUTPUT[512];         // name of the output file which can be loaded by the GNUPLOT script
-    sprintf(DIRS_FN_TRAINING, "%s", argv[1]);
-    sprintf(DIRS_FN_TARGET, "%s", argv[2]);
-    sprintf(FN_OUTPUT, "%s", argv[3]);
     // symmetry flag
-    const bool SYM = false;         // use symmetrized interpolation scheme? only set this true if the training directions were created accordingly
-    // radii. here, one single radii set is applied to all directions of one direction set. this could be generalized.
-    double  radii_training[]        = {1.,10.},                   // training radii, i.e. factors with which the training directions will be multiplied to give the training points
-            radii_target[]          = {5.};                  // target radii, i.e. factors with which the target directions will be multiplied to give the target points
+    const bool SYM = false;         // use symmetrized interpolation scheme? only set this true if the taining directions were created with a symmetrized kernel.
 
-    // numbers of radii R
-    const int R_training    = sizeof(radii_training)/sizeof(double),
-              R_target  = sizeof(radii_target)/sizeof(double);
-    
-    // outputs concerning radii
-    printf("$$$ %02i training radii   = ", R_training);
-    if( R_training<=10 )
-        UTILITY::print_matrix(radii_training, 1, R_training);
-    else
-        { printf("(only first 10) "); UTILITY::print_matrix(radii_training, 1, 10);}
-    printf("$$$ %02i target radii   = ", R_target);
-    if( R_target<=10 )
-        UTILITY::print_matrix(radii_target, 1, R_target);
-    else
-        { printf("(only first 10) "); UTILITY::print_matrix(radii_target, 1, 10);}
-        
-    /* ******************************************************************************
-     * decide which analytically given function should be approximated. the candidates are given in analytical_functions.h
-    *  comment all but the desired occurence.
-    */
-    
-    // linear function f = a^T * x  (where a is a constant vector)
-    const int D = 3;
-    double a[D]; for(int d=0; d<D; d++) a[d]=0.; a[2] = 1.;
-    LinearFunction target_function(a,D);
-    
-    //  quadratic function f = x^T * A * x * 0.5  (where A is a constant matrix)
-//     double ** A = alloc_matrix(D,D); // allocate the memory for A, then define its components
-//     double a = 2./3.;
-//  A[0][0] = 2*a;    A[0][1] = -a;    A[0][2] = -a;    A[0][3] = 0;    A[0][4] = 0;    A[0][5] = 0;
-//  A[1][0] = -a;    A[1][1] = 2*a;    A[1][2] = -a;    A[1][3] = 0;    A[1][4] = 0;    A[1][5] = 0;
-//  A[2][0] = -a;    A[2][1] = -a;    A[2][2] = 2*a;    A[2][3] = 0;    A[2][4] = 0;    A[2][5] = 0;
-//  A[3][0] = 0;    A[3][1] = 0;    A[3][2] = 0;    A[3][3] = 3*a;    A[3][4] = 0;    A[3][5] = 0;
-//  A[4][0] = 0;    A[4][1] = 0;    A[4][2] = 0;    A[4][3] = 0;    A[4][4] = 3*a;    A[4][5] = 0;
-//  A[5][0] = 0;	A[5][1] = 0;    A[5][2] = 0;    A[5][3] = 0;    A[5][4] = 0;    A[5][5] = 3*a;
-
-    
-    //  pseudo plasticity material law (hyperelasticity mimicking von Mises plasticity, only physical for proportional loading)
-    //  default constructor contains parameters similar to Aluminium
-//     PseudoPlasticity target_function( 75e3, 0.3, 100., 0. );
-
-    
-    /* [end of analytical function block] */
-    
-    
-    /* ******************************************************************************
-     * create training data and target data
-     */
-    printf("$$$ creating training data\n");
-    DataTraining * data_training = CreateDataTraining(DIRS_FN_TRAINING, radii_training, R_training, target_function);
-
-    printf("$$$ creating target data\n");
-    Data * data_target   = CreateData(DIRS_FN_TARGET, radii_target, R_target, target_function);
-
-    
-    UTILITY::assert_msg(data_training->D == data_target->D, "ERROR: training data and target data must have the same dimensions\n");
-    
-    /* [end of data block] */
-    
+    // temporary variables
+    int read_rows = -1, read_cols = -1;
     
     /* ******************************************************************************
     * initialize and setup the interpolation
     */
-    printf("$$$ Setup the interpolation\n");
-    // initialize
     ConcentricInterpolation interpolation( SYM );
     
-    // data setup
-    BuildInterpolationFromTrainingData( interpolation, data_training);
+    // read directions from text file
+    double ** matrix_directions_training = UTILITY::ReadMatrix( &read_rows, &read_cols, argv[1]);
+    printf("$$$ Read training directions: %i x %i\n", read_rows, read_cols);
+    const int D = read_cols;                // number of space dimensions (in the notation of the paper: d=D-1)
+    const int N_training = read_rows;       // number of training directions
+    
+    // read data from text file. contains N_training x R_training values, i.e. each row is the training values along one training direction
+    double ** matrix_data_training = UTILITY::ReadMatrix(&read_rows, &read_cols, argv[2]);
+    assert_msg(read_rows==N_training, "Error: number of training directions does not match number of training data directions\n");
+    const int R_training = read_cols;       // number of training radii
+    const double training_r[] = {0.,    0.2500,    0.5000,    0.7500,    1.0000};   // training radii
+    printf("$   Trianing radii: "), print_matrix(training_r,1,R_training);
+    interpolation.Allocate(N_training,D);   // allocate memory in the interpolation scheme
+    
+    // set the supporting points of the interpolation scheme
+    printf("$   Set up interpolation along %i directions at %i radii.\n", N_training, R_training);
+    for(int i_direction=0; i_direction<N_training; i_direction++)
+    {
+        // set training data
+        interpolation.Sq[i_direction].SetData(R_training, training_r, matrix_data_training[i_direction]);   // the supporting points of the interpolation polynomials are defined
+
+        // set training direction
+        const double l = norm( matrix_directions_training[i_direction], D );
+        for(int d=0; d<D; d++) interpolation.m_X[interpolation.N*D+d] = matrix_directions_training[i_direction][d]/ l; // make sure the Euclidean norm is 1 for the vectors representing directions
+        
+        // increment the counter for the dimension of m_X, i.e. the number of training directions
+        interpolation.N++;
+    }
 
     
     /* ******************************************************************************
     * specify error measure and objective function
     */
-    const bool do_gradients = true, do_hessians = false;
-    Dist_RelDiff_local distance_local;
-    Dist_Mean_global distance_global;
-//     Dist_AbsDiff_local distance_local;
-//     Dist_RMS_global distance_global;
-    double (*objective)(const double, const double, const double) = &H1_like_objective;
-    
-    
-    /* ******************************************************************************
-    * gamma setup
-    *
-    *      your choice: either (1) give specific gamma or (2) do gamma optimization to best fit the just created target data. comment the undesired and uncomment the desired.
-    * ***
-    *      option (1) :
-    */
- const double gamma = 2.56156716;
- interpolation.SetGamma(gamma);
- printf("$$$ set gamma = %lf\n", gamma);
-    /* ***
-     *      option (2):
-     */
-//     const double gamma_min = 0.5, gamma_max = 4;
-//     const int num_regular = 10;
-//     const int num_bisec = 8;
-//     const double bisection_factor = 1.5; //ATTENTION recommended value is 1.5
-//     const double gamma = OptimizeGamma(
-//                                         &interpolation,                                                 
-//                                         data_target,                                                   
-//                                         &distance_local,                                               
-//                                         &distance_global,                                              
-//                                         objective,                                                     
-//                                         gamma_min, gamma_max,                                          
-//                                         num_regular, num_bisec,                                        
-//                                         bisection_factor,                                              
-//                                         do_gradients, do_hessians   );
+
+    printf("$$$ Specify error measure\n");
+    const bool do_gradients = false;        // consider gradients in the error measure?
+    const bool do_hessians = false;         // consider Hessians in the error measure?
+    Dist_local_AbsDiff distance_local;
+    Dist_global_RMS distance_global;
+    double (*objective)(const double, const double, const double) = &L2_like_objective;
 
     
     /* ******************************************************************************
-    * run the interpolation on the target points and compare against target data  
+    * gamma setup. your choices:
+    *   (1) EITHER specify options for an automated search
+    *       meaning: perform num_regular computations of the error on the gamma interval [gamma_min,gamma_max]
+    *       followed by num_bisec bisections with factor bisection_factor of the best found gamma sub-interval
+    *       this option ignores the gamma value given by the command line.
+    *       if you do not want this option, set search_gamma false.
     */
-    TestOnSet test_object(&interpolation, data_target, &distance_local, &distance_global, objective);
-    printf("error = %le\n", test_object.run(do_gradients, do_hessians));
- 
- 
+    const double gamma_min = 0.1, gamma_max = 4;
+    const int num_regular = 10;
+    const int num_bisec = 4;
+    const double bisection_factor = 1.5;    // recommended value is 1.5
+    bool search_gamma = true;               // will search for gamma on first non-zero radius
+    double gamma = 0./0.;                   // NaN as default, force the user to decide
+    
+    /*
+    *   (2) OR set gamma given as an argument by the command line.
+    *       if you do not want this option, comment the following four lines of code (not counting comment lines)
+    */
+//     gamma = atof(argv[6]);
+//     interpolation.SetGamma(gamma);
+//     printf("$$$ Set gamma = %lf\n", gamma);
+//     search_gamma = false;
+
+    /* ******************************************************************************
+     * read validation directions and data
+     */
+    double ** matrix_directions_validation = UTILITY::ReadMatrix( &read_rows, &read_cols, argv[3]);
+    const int N_validation = read_rows;
+    assert_msg( read_cols == D, "Error: dimension of validation directions must match that of the training directions\n");
+    printf("$$$ Read validation directions: %i x %i\n", N_validation, D);
+
+    double ** matrix_data_validation = UTILITY::ReadMatrix(&read_rows, &read_cols, argv[4]);
+    assert_msg( read_rows == N_validation, "Error: number of validation data rows must equal number of validation directions\n");
+    const int R_validation = read_cols;
+    printf("$   Read validation data: %i x %i\n", N_validation, R_validation);
     
     /* ******************************************************************************
-    * output interpolation results to gnuplottable text file
+    * run the interpolation and write gnuplot compatible output file
     */
-    WriteDataGnuplot( test_object.data_interpolation, FN_OUTPUT);
+    // header line as comment (beginning with hash)
+    FILE * outfile = fopen(argv[5],"w");    // WARNING: overwrites output file. replace "w" by "a" to append instead.
+    fprintf(outfile,"# N_training = %i, R_training = %i, N_validation = %i, R_validation = %i, gamma = %lf\n#training directions  : %s\n#training data        : %s\n#validation directions: %s\n#validation data      : %s\n#radius                         L2error\n",
+            N_training, R_training, N_validation, R_validation, gamma, argv[1], argv[2], argv[3], argv[4]);
+    fclose(outfile);
     
+    // create a validation data object data_validation for each validation radius separately, and run the interpolation on each of these radii.
+    double r_validation[R_validation], L2errors[R_validation];
+    for(int i_radius=0; i_radius<R_validation; i_radius++)
+    {
+        r_validation[i_radius] = double(i_radius)/double(R_validation-1);
+        Data data_validation(D, 1*N_validation);
+        int i_point = 0;
+        for(int i_direction=0; i_direction<N_validation; i_direction++)
+        {
+            for(int i_dimension=0; i_dimension<D; i_dimension++)
+                data_validation.SafeAccess_coord(i_point,i_dimension) = matrix_directions_validation[i_direction][i_dimension]*r_validation[i_radius];
+            data_validation.SafeAccess_values(i_point) = matrix_data_validation[i_direction][i_radius];
+            i_point++;
+        }
+        // perform gamma search if appropriate
+        if(search_gamma && r_validation[i_radius]>1e-16)
+        {
+            search_gamma = false;
+            gamma = OptimizeGamma(
+                        &interpolation,                                                 
+                        &data_validation,                                                   
+                        &distance_local,                                               
+                        &distance_global,                                              
+                        objective,                                                     
+                        gamma_min, gamma_max,                                          
+                        num_regular, num_bisec,                                        
+                        bisection_factor,                                              
+                        do_gradients, do_hessians   );
+            interpolation.SetGamma(gamma);
+            printf("$$$ Set gamma = %lf\n", gamma);
+        }
     
-    
+        printf(" testing on all validation directions at radius %5.3f (%3i/%3i) ... ", r_validation[i_radius], i_radius, R_validation); fflush(stdout);
+        TestOnSet test_object(&interpolation, &data_validation, &distance_local, &distance_global, objective);
+        L2errors[i_radius] = test_object.run(do_gradients, do_hessians);
+        // save results after each radius
+        FILE * outfile = fopen(argv[5],"a");
+        fprintf(outfile, "%28.20e   %28.20e\n", r_validation[i_radius], L2errors[i_radius]);
+        fclose(outfile);
+    }
+
     
     /* ******************************************************************************
     * close the program, free memory 
     */
-    delete data_training;
-    delete data_target;
-    // if quadratic function has been set up, free matrix A
-//     free_matrix(A,D);
+    free_matrix(matrix_data_training, N_training);
+    free_matrix(matrix_directions_validation, N_validation);
+    free_matrix(matrix_data_validation, N_validation);
     
     printf("\n\n$$$ Program finished regularly\n\n\n");
     

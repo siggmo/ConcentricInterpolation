@@ -3,9 +3,11 @@
 #define __CONCENTRIC_INTERPOLATION_H__
 
 /*
+ *  COPYRIGHT NOTES
+ * 
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( felix.fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( oliver.kunc@mechbau.uni-stuttgart.de )
+ *  Copyright (C) 2019  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
+ *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,13 +21,21 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *  (the full license is distributed together with the software in a file named
+ *  LICENSE)
+ *
+ *  This software package is related to the research article
+ * 
+ *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
+ *                                     sets on spheres and their application in
+ *                                     mesh-free interpolation and
+ *                                     differentiation'
+ *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
+ *     DOI   ...
+ *     URL   dx.doi.org/...
  *  
- *  
- *  For details or if you like this software please refer to LITERATURE which
- *  contains also BIBTEX information.
- *  
- *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *  
+ *  The latest version of this software can be obtained through
+ *  https://github.com/EMMA-Group/ConcentricInterpolation
  *  
  */
 
@@ -37,10 +47,9 @@
 #include <math.h>
 #include <iostream>
 #include <lapacke.h>
-// #include <mkl_lapacke.h>
 #include <cubic_interpolant.h>
+#include <quadratic_interpolant.h>
 #include <util.h>
-#include "../examples/analytical_functions.h"
 
 
 class ConcentricInterpolation;
@@ -66,7 +75,6 @@ private:
     CubicInterpolant    * S;        //!< array of piecewise cubic functions used for radial interpolation
     bool        init;               //!< initialization flag
     int         N_alloc;            //!< dimension of the pre-allocated memory
-    int         N;                  //!< number of actually provided directions
     int         D;                  //!< dimension of the inputs
     double      gamma;              //!< kernel width parameter of the Gaussian kernel function
     double      lambda;             //!< regression parameter: controls condition number of kernel matrix. usually not needed.
@@ -88,8 +96,7 @@ private:
     bool        * active;           //!< mark training directions which are active or not. active means not too close to the query direction, i.e. 1/sin(xi) is bound. inactive training directions will be assumed to have a minimum angular distance to the query direciton
     // matrix like 2D arrays (in terms of 1D row_major arrays). these are prefixed with "m_" to emphasize their multidimensional nature.
     double      *m_K,               //!< dense kernel matrix
-                *m_Kf,              //!< the LDL factorization of the kernel matrix. used for solving systems of the form K * Ki_a = a for Ki_a
-                *m_X;               //!< training directions (pre-allocated with size N_alloc)
+                *m_Kf;              //!< the LDL factorization of the kernel matrix. used for solving systems of the form K * Ki_a = a for Ki_a
     double      *m_J0;              //!< Hessian for very small values of r
 
     static const double small; // = 1.e-12; //!< small number; used, e.g., in order to prevent division by zero errors
@@ -100,6 +107,9 @@ private:
     bool CheckRadius( const double * a_radii, const int a_R ) const; //!< returns true, if the first point is zero; if the data is not sorted then exit with an error
     
 public:
+    double      *m_X;               //!< training directions (pre-allocated with size N_alloc)
+    int         N;                  //!< number of actually provided directions
+    QuadraticInterpolant* Sq;       //!< array of piecewise quadratic functions used for radial interpolation
     
     ConcentricInterpolation( const bool a_sym = false /*!< [in] use symmetrization */ );
     /*!< Default constructur; requires call to Allocate before adding data

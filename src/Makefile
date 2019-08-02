@@ -20,7 +20,7 @@ LIB=-L. -L /usr/lib/x86_64-linux-gnu/\
 
 default:	lib
 
-lib:		util interpolation cubic data data_util  dist_func  obj_func TI RI
+lib:		util interpolation cubic quadratic data data_util  dist_func  obj_func TI RI
 	$(AR) r libconinter.a			\
 	        cubic_interpolant.o		\
 	        concentric_interpolation.o	\
@@ -30,9 +30,8 @@ lib:		util interpolation cubic data data_util  dist_func  obj_func TI RI
 	        distance_functions.o		\
 	        tangential_interpolation.o	\
 	        radial_interpolation.o		\
-	        objective_functions.o
-	        
-
+	        objective_functions.o		\	
+	        quadratic_interpolant.o
 
 clean:
 	rm -rf *.o
@@ -44,11 +43,15 @@ distclean:
 cubic:	cubic_interpolant.h cubic_interpolant.cxx
 	$(CXX) $(OPT) -c cubic_interpolant.cxx $(INC)
 
+quadratic:	quadratic_interpolant.h quadratic_interpolant.cxx
+	$(CXX) $(OPT) -c quadratic_interpolant.cxx $(INC)
+
 util:	util.h util.cxx
 	$(CXX) $(OPT) -c util.cxx $(INC)
 
-interpolation:	concentric_interpolation.h concentric_interpolation.cxx ../examples/analytical_functions.h ../examples/analytical_functions.cxx
-	$(CXX) $(OPT) -c concentric_interpolation.cxx ../examples/analytical_functions.cxx $(INC)
+interpolation:	concentric_interpolation.h concentric_interpolation.cxx
+	$(CXX) $(OPT) -c concentric_interpolation.cxx $(INC)
+
 
 #############################################################################################################
 #############################################################################################################

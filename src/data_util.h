@@ -2,9 +2,11 @@
 #define __DATA_UTIL_H__
 
 /*
+ *  COPYRIGHT NOTES
+ * 
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( felix.fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( oliver.kunc@mechbau.uni-stuttgart.de )
+ *  Copyright (C) 2019  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
+ *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,13 +20,21 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *  (the full license is distributed together with the software in a file named
+ *  LICENSE)
+ *
+ *  This software package is related to the research article
+ * 
+ *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
+ *                                     sets on spheres and their application in
+ *                                     mesh-free interpolation and
+ *                                     differentiation'
+ *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
+ *     DOI   ...
+ *     URL   dx.doi.org/...
  *  
- *  
- *  For details or if you like this software please refer to LITERATURE which
- *  contains also BIBTEX information.
- *  
- *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *  
+ *  The latest version of this software can be obtained through
+ *  https://github.com/EMMA-Group/ConcentricInterpolation
  *  
  */
 
@@ -42,7 +52,10 @@ void InterpolateOnSet(  ConcentricInterpolation * interpolation, /*!< [in] the i
 
 /*! \brief Class for evaluation of the distance function
  * 
- *  TODO
+ *  1) runs the interpolation
+ *  2) computes "local distance", i.e. applies DistanceFunction_local \b<pointwise> to the interpolated value and to the reference value
+ *  3) computes "global distance", i.e. applies DistanceFunction_global to the pointwise values of local distance
+ *  4) computes objective function value, i.e. 
  * 
  * \see \GammaOptFunctional
  * \see \OptimizeGamma
@@ -67,9 +80,9 @@ public:
     Data * data_reference;                      /*!< pointer to the reference data */
     const int D;                                /*!< dimension of the point coordinates */
     const int P;                                /*!< number of points in the test set */
-    double * dist_values_local;                 /*!< point-wise distance (error) of interpolated values from reference values */
-    double * dist_gradients_local;              /*!< point-wise distance (error) of approximate gradients from reference gradients */
-    double * dist_hessians_local;               /*!< point-wise distance (error) of approximate Hessians from reference Hessians */
+    double * dist_local_values;                 /*!< point-wise distance (error) of interpolated values from reference values */
+    double * dist_local_gradients;              /*!< point-wise distance (error) of approximate gradients from reference gradients */
+    double * dist_local_hessians;               /*!< point-wise distance (error) of approximate Hessians from reference Hessians */
     
     DistanceFunction_local * distfunc_local; /*!< local distance function */
     DistanceFunction_global* distfunc_global; /*!< global distance function */

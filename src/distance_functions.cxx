@@ -27,7 +27,7 @@
  *  
  */
 /* *************************************************************************************** */
-double Dist_RelDiff_local::eval_scalar(const double f1, const double f2)
+double Dist_local_RelDiff::eval_scalar(const double f1, const double f2)
 {
     const double f2abs = fabs(f2);
     if(f2abs>DistanceFunction_TOL)
@@ -35,7 +35,7 @@ double Dist_RelDiff_local::eval_scalar(const double f1, const double f2)
     else
         return fabs(f1-f2)/DistanceFunction_TOL;
 }
-double Dist_RelDiff_local::eval_vector(const double * vec1, const double * vec2, const int D)
+double Dist_local_RelDiff::eval_vector(const double * vec1, const double * vec2, const int D)
 {
     double value = 0;
     double normvec2 = 0;
@@ -50,12 +50,12 @@ double Dist_RelDiff_local::eval_vector(const double * vec1, const double * vec2,
         return sqrt(value/DistanceFunction_TOL);
 }
 /* *************************************************************************************** */
-double Dist_AbsDiff_local::eval_scalar(const double f1, const double f2)
+double Dist_local_AbsDiff::eval_scalar(const double f1, const double f2)
 {
     return fabs(f1-f2);
 }
 
-double Dist_AbsDiff_local::eval_vector(const double * vec1, const double * vec2, const int D)
+double Dist_local_AbsDiff::eval_vector(const double * vec1, const double * vec2, const int D)
 {
     double value = 0;
     for(int d=0; d<D; d++)
@@ -63,14 +63,14 @@ double Dist_AbsDiff_local::eval_vector(const double * vec1, const double * vec2,
     return sqrt(value);
 }
 /* *************************************************************************************** */
-double Dist_Mean_global::eval(const double * f, const int P)
+double Dist_global_Mean::eval(const double * f, const int P)
 {
     double value = 0;
     for(int p=0; p<P; p++)
         value += f[p];
     return value/P;
 }
-double Dist_RMS_global::eval(const double * f, const int P)
+double Dist_global_RMS::eval(const double * f, const int P)
 {
     double value = 0;
     for(int p=0; p<P; p++)
@@ -78,7 +78,7 @@ double Dist_RMS_global::eval(const double * f, const int P)
     return sqrt(value/P);
 }
 
-double Dist_Max_global::eval(const double * f, const int P)
+double Dist_global_Max::eval(const double * f, const int P)
 {
     double fmax = fabs(f[0]);
     for(int p=1; p<P; p++)
