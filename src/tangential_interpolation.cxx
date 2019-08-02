@@ -16,22 +16,23 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *  
- *  
+ *
+ *
  *  For details or if you like this software please refer to LITERATURE which
  *  contains also BIBTEX information.
- *  
+ *
  *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *  
- *  
+ *
+ *
  */
 
 #include <tangential_interpolation.h>
 using namespace UTILITY;
 
 /* *************************************************************************************** */
-const double TangentialInterpolation::small = 1.e-12;    //!< small number; used, e.g., in order to prevent division by zero errors
-const double TangentialInterpolation::theta_max = 0.99995 /*1.000000*/; //!< required in order to regularize the derivative of zeta!
+// initialize static variables
+const double TangentialInterpolation::small      = 1.e-12;
+const double TangentialInterpolation::theta_max  = 0.99995;
 /* *************************************************************************************** */
 TangentialInterpolation::TangentialInterpolation( const bool a_sym )
 {
@@ -50,7 +51,7 @@ TangentialInterpolation::TangentialInterpolation( const bool a_sym )
 void TangentialInterpolation::zero_pointers()
 {
     // initialize pointers to NULL
-    
+
     // private members:
     w_i         = 0;
     m_K         = 0;
@@ -61,7 +62,7 @@ void TangentialInterpolation::zero_pointers()
     zeta_star   = 0;
     zeta_tilde  = 0;
     active      = 0;
-    sin_xi      = 0;
+//     sin_xi      = 0;
     xi          = 0;
     x           = 0;
 }
@@ -81,7 +82,7 @@ void TangentialInterpolation::Allocate( int a_N_alloc, const int a_D )
     // m_K and m_Kf are only initialized when actually needed!
     m_X     = alloc_array( N_alloc*D );
     x       = alloc_array( D );
-    sin_xi  = alloc_array( N_alloc );
+//     sin_xi  = alloc_array( N_alloc );
     theta   = alloc_array( N_alloc );
     xi      = alloc_array( N_alloc );
     zeta    = alloc_array( N_alloc );
@@ -110,7 +111,7 @@ void TangentialInterpolation::Free()
         delete [] active;
         active = 0;
     }
-    free_array( &sin_xi );
+//     free_array( &sin_xi );
     free_array( &theta );
     free_array( &zeta );
     free_array( &zeta_tilde );
@@ -120,48 +121,47 @@ void TangentialInterpolation::Free()
 /* *************************************************************************************** */
 void TangentialInterpolation::AddDirection( const double * a_X )
 {
-    assert_msg( N < N_alloc, "ERROR in TangentialInterpolation::AddInterpolationData: allocation size too small (trying to add another entry although n=N_alloc)\n");
-    init = false; // reset initialization flag since kernel matrix needs to be re-computed!
-        
+    assert_msg( N < N_alloc, "ERROR in TangentialInterpolation::AddInterpolationData: allocation size too small (trying to add another entry although N>=N_alloc)\n");
+    init = false; // reset initialization flag since kernel matrix needs to be re-computed
+
     const double l = norm( a_X, D );
     for(int d=0; d<D; d++) m_X[N*D+d] = a_X[d] / l; // make sure the length is 1 for the directions
     N++; // increment the counter for the dimension of m_X, i.e. the number of training directions
 }
 /* *************************************************************************************** */
 void TangentialInterpolation::Weights(
-        double * o_W,       /* [out] vector \c W of weights */
-        const double * a_x, /* [in] vector/direction \c X */
-        double * o_zeta,    /* [out] vector \c W of zeta values (if not needed set to NULL) */
-        double * o_dzeta,   /* [out] vector \c W of dzeta values (if not needed set to NULL) */
-        double * o_ddzeta   /* [out] vector \c W of dzeta values (if not needed set to NULL) */
+        double * a_W,
+        const double * a_x,
+        double * a_zeta,
+        double * a_dzeta,
+        double * a_ddzeta
                 )
 {
-    const bool b_zeta       = (o_zeta != 0);
-    const bool b_dzeta      = (o_dzeta != 0);
-    const bool b_ddzeta     = (o_ddzeta != 0);
+    const bool da_zeta   = (a_zeta != 0);
+    const bool do_dzeta  = (a_dzeta != 0);
+    const bool do_ddzeta = (a_ddzeta != 0);
 
     if( !init ) { InitializeKernelMethod(); }
 
     double radius = norm( a_x, D );
-    // in the case of a very small amplitude, interpolate value of the first pcw cubic function at radius=0.
+    // in the case of a very small amplitude, interpolate value of the first piecewise function at radius=0.
     for(int d=0;d<D;d++) x[d] = a_x[d]/radius; // normalize inputs, i.e. direction of input
 
     // compute theta = cos(xi)
     MatVecMul( m_X, x, theta, N, D );
-
     for(int n=0; n<N; n++) {
         xi[n] = safeAcos(theta[n]);
         if( theta[n] > theta_max ) {
             active[n]   = false;
-            sin_xi[n]   = 1e-16;
+//             sin_xi[n]   = 1e-16;
         }
         else if ( theta[n] < -theta_max ) {
             active[n]   = false;
-            sin_xi[n]   = 1e-16;
+//             sin_xi[n]   = 1e-16;
         }
         else {
             active[n]   = true;
-            sin_xi[n]   = sqrt( 1.-theta[n]*theta[n]); // sin(xi[n]);
+//             sin_xi[n]   = sqrt( 1.-theta[n]*theta[n]); // sin(xi[n]);
         }
     }
     // symmetric case:
@@ -173,20 +173,20 @@ void TangentialInterpolation::Weights(
             zeta[n]         = exp(- gamma * xi[n]*xi[n] );
             zeta_tilde[n]   = exp(- gamma * (PI-xi[n]) * (PI-xi[n]) );
             zeta_star[n]    = zeta_tilde[n] + zeta[n];
-            if( b_dzeta || b_ddzeta )
+            if( do_dzeta || do_ddzeta )
             {
                 if(active[n])
                 {
-                    if(b_dzeta)     o_dzeta[n]    = - 2.*gamma*( zeta[n]*xi[n] - (PI-xi[n])*zeta_tilde[n] );
-                    if(b_ddzeta)    o_ddzeta[n]   = -2.*gamma * (
+                    if(do_dzeta)     a_dzeta[n]    = - 2.*gamma*( zeta[n]*xi[n] - (PI-xi[n])*zeta_tilde[n] );
+                    if(do_ddzeta)    a_ddzeta[n]   = -2.*gamma * (
                             zeta[n]         * ( 1. - 2.*gamma*xi[n]*xi[n]  )
-                        +   zeta_tilde[n]   * ( 1. - 2.*gamma*(PI-xi[n])*(PI-xi[n]) ) 
+                        +   zeta_tilde[n]   * ( 1. - 2.*gamma*(PI-xi[n])*(PI-xi[n]) )
                                             );
                 }
                 else
                 {
-                    if(b_dzeta)     o_dzeta[n]    = 0.;
-                    if(b_ddzeta)    o_ddzeta[n]   = 0.;
+                    if(do_dzeta)     a_dzeta[n]    = 0.;
+                    if(do_ddzeta)    a_ddzeta[n]   = 0.;
                 }
             }
         }
@@ -198,27 +198,27 @@ void TangentialInterpolation::Weights(
         for(int n=0; n<N; n++)
         {
             zeta[n] = exp(- gamma * xi[n]*xi[n] );
-            if( b_dzeta || b_ddzeta )
+            if( do_dzeta || do_ddzeta )
             {
                 if( active[n] )
                 {
-                    if(b_dzeta)     o_dzeta[n]    = - 2.*gamma*zeta[n]*xi[n];
-                    if(b_ddzeta)    o_ddzeta[n]   = -2.*gamma * zeta[n] * ( 1. - 2.*gamma*xi[n]*xi[n]  );
+                    if(do_dzeta)     a_dzeta[n]    = - 2.*gamma*zeta[n]*xi[n];
+                    if(do_ddzeta)    a_ddzeta[n]   = -2.*gamma * zeta[n] * ( 1. - 2.*gamma*xi[n]*xi[n]  );
                 }
                 else
                 {
-                    if(b_dzeta)     o_dzeta[n]    = 0.;
-                    if(b_ddzeta)    o_ddzeta[n]   = 0.;
+                    if(do_dzeta)     a_dzeta[n]    = 0.;
+                    if(do_ddzeta)    a_ddzeta[n]   = 0.;
                 }
             }
         }
     }
-    
+
     if( sym )
-        SolveByFactorization( m_Kf, zeta_star, o_W, w_i, N, 1);
+        SolveByFactorization( m_Kf, zeta_star, a_W, w_i, N, 1);
     else
-        SolveByFactorization( m_Kf, zeta, o_W, w_i, N, 1);
-    
+        SolveByFactorization( m_Kf, zeta, a_W, w_i, N, 1);
+
 }
 /* *************************************************************************************** */
 void TangentialInterpolation::InitializeKernelMethod( )
@@ -240,7 +240,7 @@ void TangentialInterpolation::InitializeKernelMethod( )
             tmp_alpha  = safeAcos( VecVecMul( m_X + n*D, m_X + n2*D, D ) );
             if ( sym )
                     m_K[n*N+n2]  = exp(-gamma*tmp_alpha*tmp_alpha)  +  exp(-gamma*(PI-tmp_alpha)*(PI-tmp_alpha));
-            else  
+            else
                     m_K[n*N+n2]  = exp(-gamma*tmp_alpha*tmp_alpha);
             m_K[n2*N+n] = m_K[n*N+n2];
         }
@@ -258,6 +258,8 @@ void TangentialInterpolation::SetLambda( const double a_lambda )
 {
     assert_msg( a_lambda >= 0., "ERROR in TangentialInterpolation::SetLambda: regression parameter must be non-negative\n");
     lambda = a_lambda;
+    if ( init )
+        RecomputeKernelMatrix();
     printf("$   set lambda to %lf\n", lambda);
 
 }
@@ -281,7 +283,7 @@ void TangentialInterpolation::RecomputeKernelMatrix()
 
     // store LDL factorization of kernel matrix
     Factorize( m_K, m_Kf, w_i, N );
-    
+
 
 }
 /* *************************************************************************************** */

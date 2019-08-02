@@ -3,7 +3,7 @@
 
 /*
  *  COPYRIGHT NOTES
- * 
+ *
  *  ConcentricInterpolation
  *  Copyright (C) 2019  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
  *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
@@ -24,7 +24,7 @@
  *  LICENSE)
  *
  *  This software package is related to the research article
- * 
+ *
  *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
  *                                     sets on spheres and their application in
  *                                     mesh-free interpolation and
@@ -32,10 +32,10 @@
  *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
  *     DOI   ...
  *     URL   dx.doi.org/...
- *  
+ *
  *  The latest version of this software can be obtained through
  *  https://github.com/EMMA-Group/ConcentricInterpolation
- *  
+ *
  */
 
 
@@ -44,22 +44,13 @@
 #include <math.h>
 #include <util.h>
 
-/* RadialInterpolation provides a general one-dimensional interpolation
- * framework for a set of data samples.
- * Ideally, the data samples pop-up in the same scheme.
- * Then the interpolation can be replaced by a straight-forward vector-matrix
- * multiplication which is appealing from an algorithmic perspective.
- * 
- * A function that interpolations the data on the same grid is available.
- * 
- * The general RadialInterpolation class provides piecewise linear, continuous
- * interpolation. Other types can be derived from it rather easily by replacing the
- * FIT and INTERPOLATIONWEIGHTS functions.
- * */
-
 class Interpolant;
 class InterpolantQuad;
 class RadialInterpolation;
+
+/** \brief Class for linear interpolation, serving as parent to all other
+ *
+ */
 
 class Interpolant {
 protected:
@@ -75,7 +66,7 @@ private:
 public:
     Interpolant();
     ~Interpolant();
-    
+
     void    Dim( const int d );    //!< set the dimension of the data (implies clearing existing data)
     int     Dim() const;            //!< get the dimension of the data
     //! return the interval in which the point is found
@@ -84,7 +75,7 @@ public:
             return 0; /* take left-most interval and use negative linear extrapolation */
         if( x >= X[n-1] )
             return n-1;
-        
+
         int l=0, r=n-1, m=0;
         while(r-l>3)
         {
@@ -97,7 +88,7 @@ public:
 //         printf("x_- %8.4f  x %8.4f  X_+ %8.4f\n", X[l], x, X[l+1]);
         return l;
     }
-    
+
     //! initialize the intervals and the data
     void Train( int n_x                         /*! [in] number of positions */ ,
                 const double * const x          /*! [in] data positions */ ,
@@ -106,7 +97,7 @@ public:
                 );
     //! interpolate data at given position x
     void Interpolate( const double x, double * v_Data);
-    //! get interpolation weights (interval index known
+    //! get interpolation weights (interval index known)
     void InterpolationWeights( const int idx, const double x, double * o_w  ) const;
     //! get interpolation weights
     void InterpolationWeights( const double x, double * o_w ) const;
@@ -128,7 +119,7 @@ protected:
 public:
     InterpolantQuad();
     ~InterpolantQuad();
-    
+
     //! initialize the intervals and the data
     void Train( int n_x                         /*! [in] number of positions */ ,
                 const double * const x          /*! [in] data positions */ ,
@@ -137,7 +128,7 @@ public:
                 );
 
     //! initialize the intervals and the data (using C1 continuous data)
-    void TrainC1( int n_x                         /*! [in] number of positions */ ,
+    void TrainC1( int n_x                       /*! [in] number of positions */ ,
                 const double * const x          /*! [in] data positions */ ,
                 int a_dim                       /*! [in] dimension of the data */ ,
                 const double * const m_Data     /*! [in] data j at point x_i --> m_Data[i*a_dim+j]*/
@@ -145,7 +136,7 @@ public:
 
     //! interpolate data at given position x
     void Interpolate( const double x, double * v_Data);
-    //! get interpolation weights (interval index known
+    //! get interpolation weights (interval index known)
     void InterpolationWeights( const int idx, const double x, double * o_w  ) const;
     //! get interpolation weights
     void InterpolationWeights( const double x, double * o_w ) const;
@@ -154,6 +145,25 @@ public:
 
 
 
+
+/** RadialInterpolation provides a general one-dimensional interpolation
+ * framework for a set of data samples.
+ * Ideally, the data samples pop-up in the same scheme for all interpolants,
+ * e.g. in the context of Concentric Interpolation: along all directions.
+ * Then the interpolation can be replaced by a straight-forward vector-matrix
+ * multiplication which is appealing from an algorithmic perspective.
+ *
+ * A function that interpolates the data on the same grid is available.
+ *
+ * The general RadialInterpolation class provides piecewise linear, continuous
+ * interpolation. Other types can be derived from it rather easily by replacing
+ * the FIT and INTERPOLATIONWEIGHTS functions.
+ *
+ * For Concentric Interpolation, this is used in combination with Tangential
+ * Interpolation.
+ *
+ * \see TangentialInterpolation
+ * */
 
 class RadialInterpolation {
 private:
@@ -184,7 +194,7 @@ public:
 
     //! return number of directions fed into the object
     int NInput() const;
-    
+
     //! To be done first: set interpolant
     void SetInterpolant( Interpolant * a_In );
 
@@ -193,18 +203,18 @@ public:
 
     //! add radial data
     void AddData( Interpolant * In );
-    
+
     //! add radial data
     void AddData( const double * const m_D );
 
     //! reorder the data such that Interpolate is indeed efficient
     void ReorderData();
 
-    
+
     //! interpolate data
     void Interpolate( const double x /*! [in] x position for interpolation */ ,
                       double * m_out /*! [out] interpolation data m_out[i*dim+j] --> j-th component in direction i */ ) ;
-                      
+
     const double * const Data() const;
 };
 

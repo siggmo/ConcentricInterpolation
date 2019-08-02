@@ -4,7 +4,7 @@
 OPT=-O6
 AR=ar
 CXX=g++
-INC=-I. 
+INC=-I.
 
 # REQUIREMENTS
 # 1. lapacke and GNU GSL must be installed (e.g. in ubuntu: "sudo apt-get install liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0" )
@@ -20,7 +20,7 @@ LIB=-L. -L /usr/lib/x86_64-linux-gnu/\
 
 default:	lib
 
-lib:		util interpolation cubic quadratic data data_util  dist_func  obj_func
+lib:		util interpolation cubic quadratic data data_util dist_func obj_func TI RI
 	$(AR) r libconinter.a			\
 	        cubic_interpolant.o		\
 	        concentric_interpolation.o	\
@@ -29,7 +29,9 @@ lib:		util interpolation cubic quadratic data data_util  dist_func  obj_func
 	        data_util.o			\
 	        distance_functions.o		\
 	        objective_functions.o		\
-	        quadratic_interpolant.o
+	        quadratic_interpolant.o		\
+	        tangential_interpolation.o	\
+	        radial_interpolation.o
 
 clean:
 	rm -rf *.o
@@ -50,18 +52,24 @@ util:	util.h util.cxx
 interpolation:	concentric_interpolation.h concentric_interpolation.cxx
 	$(CXX) $(OPT) -c concentric_interpolation.cxx $(INC)
 
+TI:	tangential_interpolation.h tangential_interpolation.cxx
+	$(CXX) $(OPT) -c tangential_interpolation.cxx $(INC)
+
+RI:	radial_interpolation.h radial_interpolation.cxx
+	$(CXX) $(OPT) -c radial_interpolation.cxx $(INC)
+
 
 #############################################################################################################
 #############################################################################################################
 
 data:
 	$(CXX) $(OPT) -c data.cxx $(INC)
-	
+
 data_util:
 	$(CXX) $(OPT) -c data_util.cxx $(INC)
 
 dist_func:
 	$(CXX) $(OPT) -c distance_functions.cxx $(INC)
-	
+
 obj_func:
 	$(CXX) $(OPT) -c objective_functions.cxx $(INC)
