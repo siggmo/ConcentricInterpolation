@@ -1,7 +1,7 @@
 ### for debugging try:
-# OPT=-O0 -g
+OPT=-O0 -g
 ### for performance related builds use
-OPT=-O6
+# OPT=-O6
 AR=ar
 CXX=g++
 INC=-I. 
@@ -20,7 +20,7 @@ LIB=-L. -L /usr/lib/x86_64-linux-gnu/\
 
 default:	lib
 
-lib:		util interpolation cubic data data_util  dist_func  obj_func
+lib:		util interpolation cubic data data_util  dist_func  obj_func TI RI
 	$(AR) r libconinter.a			\
 	        cubic_interpolant.o		\
 	        concentric_interpolation.o	\
@@ -28,6 +28,8 @@ lib:		util interpolation cubic data data_util  dist_func  obj_func
 	        data.o				\
 	        data_util.o			\
 	        distance_functions.o		\
+	        tangential_interpolation.o	\
+	        radial_interpolation.o		\
 	        objective_functions.o
 	        
 
@@ -62,3 +64,9 @@ dist_func:
 	
 obj_func:
 	$(CXX) $(OPT) -c objective_functions.cxx $(INC)
+
+TI:
+	$(CXX) $(OPT) -c tangential_interpolation.cxx $(INC)
+
+RI:
+	$(CXX) $(OPT) -c radial_interpolation.cxx $(INC)

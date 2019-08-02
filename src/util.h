@@ -36,7 +36,8 @@
 #include <unistd.h>
 #include <sys/stat.h> 
 #include <lapacke.h>
-
+#include <random>
+#include <chrono>
 
 #ifndef PI
 #define PI 3.14159265358979
@@ -58,7 +59,7 @@ double **   ReadMatrix(  int *r             /*!<[out] number of read rows*/,
                          const char * fn,   /*!<[in] name of the file containing the directions*/
                          const int NMAX_LINES=32768, const int NMAX_COL=32 );
 //! dump a pseudo-2d-matrix or an array to a stream. if array, set m = 1.
-void        print_matrix(   double * a/*!<[in] 1-d or pseudo 2-d pointer*/,
+void        print_matrix(   const double * const a/*!<[in] 1-d or pseudo 2-d pointer*/,
                             const int m/*!<[in] number of rows*/,
                             const int n/*!<[in] number of columns*/,
                             FILE * F = stdout/*!<[in] stream pointer*/);
@@ -111,6 +112,12 @@ void        SolveByFactorization( const double * Af /*!< [in] LDL factorization 
                                   int * w_i /*!< [in] permutation vector; \see Factorize */,
                                   const int N /*!< [in] dimension of A */,
                                   const int Nrhs = 1 /*!< number of right-hand sides, i.e. the number of a's columns */ );
+/* *************************************************************************************** */
+//! generate n_dir random directions of dimension dim (stored as row vectors in output)
+double ** RandomDirections( const int dim,  //!< [in] dimension of the vectors
+                            const int n_dir //!< [in] number of directions to generate
+                          );
+
 /* *************************************************************************************** */
 
 

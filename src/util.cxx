@@ -151,7 +151,7 @@ double ** UTILITY::ReadMatrix( int *r, int *c, const char * fn, const int NMAX_L
     return matrix;
 }
 /* *************************************************************************************** */
-void UTILITY::print_matrix( double * a, const int m, const int n, FILE * F )
+void UTILITY::print_matrix( const double * const a, const int m, const int n, FILE * F )
 {
     assert_msg( m>0, "error in print_matrix: m>0 required\n");
     assert_msg( n>0, "error in print_matrix: n>0 required\n");
@@ -255,7 +255,7 @@ void    UTILITY::Factorize( const double * A, double * Af, int * w_i, const int 
 void    UTILITY::SolveByFactorization( const double * Af, const double * a, double * Ai_a, int * w_i, const int N, const int Nrhs )
 {
 #pragma unroll (4)
-    for(int n=0;n<N;n++) Ai_a[n] = a[n];
+    for(int n=0;n<N*Nrhs;n++) Ai_a[n] = a[n];
     
     int info = LAPACKE_dsytrs( LAPACK_ROW_MAJOR, 'L', N, Nrhs, Af, N, w_i, Ai_a, Nrhs );
 }
@@ -345,3 +345,30 @@ void UTILITY::progress::display(const int current, const int total)
 //  if(current==total)
 //      printf("\n");
 }
+
+/* *************************************************************************************** */
+double ** UTILITY::RandomDirections( const int dim,  //!< [in] dimension of the vectors
+                            const int n_dir //!< [in] number of directions to generate
+                          )
+{
+     // construct a trivial random generator engine from a time-based seed:
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine generator (seed);
+    std::normal_distribution<double> distribution(0.0, 1.0);
+    double ** A = alloc_matrix( n_dir, dim );
+    for(int i_dir=0; i_dir<n_dir; i_dir++)
+    {
+        double l = 0.;
+        for(int j=0; j<dim; j++)
+        {
+            A[i_dir][j] = double(distribution(generator));
+            l       += A[i_dir][j]*A[i_dir][j];
+        }
+        l = sqrt(l);
+        for(int j=0; j<dim; j++)
+            A[i_dir][j] /= l;
+    }
+    return A;
+}
+
+/* *************************************************************************************** */

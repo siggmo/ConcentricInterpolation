@@ -78,13 +78,19 @@ void TangentialInterpolation::Allocate( int a_N_alloc, const int a_D )
 
     active  = new bool [ N_alloc ];
     assert_msg( active != 0, "ERROR in TangentialInterpolation::Allocate: could not allocate memory for 'active'\n");
-    // m_K and m_Kf are only initialized when actually needed!
+    
     m_X     = alloc_array( N_alloc*D );
     x       = alloc_array( D );
     sin_xi  = alloc_array( N_alloc );
     theta   = alloc_array( N_alloc );
     xi      = alloc_array( N_alloc );
     zeta    = alloc_array( N_alloc );
+    
+    // make sure the working array has the appropriate size
+    if( w_i != 0 ) { delete [] w_i; w_i = 0; }
+    w_i     = new int [ 32*N_alloc*N_alloc ];
+    m_K     = new double [ N_alloc*N_alloc ];
+    m_Kf    = new double [ N_alloc*N_alloc ];
     if( sym ) {
         zeta_tilde  = alloc_array( N_alloc );
         zeta_star   = alloc_array( N_alloc );
@@ -130,7 +136,8 @@ void TangentialInterpolation::AddDirection( const double * a_X )
 /* *************************************************************************************** */
 void TangentialInterpolation::Weights(
         double * o_W,       /* [out] vector \c W of weights */
-        const double * a_x, /* [in] vector/direction \c X */
+        const int n_dirs,   /* [in]  number of directions in \c X */
+        const double * a_x, /* [in]  vector/direction \c X */
         double * o_zeta,    /* [out] vector \c W of zeta values (if not needed set to NULL) */
         double * o_dzeta,   /* [out] vector \c W of dzeta values (if not needed set to NULL) */
         double * o_ddzeta   /* [out] vector \c W of dzeta values (if not needed set to NULL) */
@@ -142,116 +149,171 @@ void TangentialInterpolation::Weights(
 
     if( !init ) { InitializeKernelMethod(); }
 
-    double radius = norm( a_x, D );
-    // in the case of a very small amplitude, interpolate value of the first pcw cubic function at radius=0.
-    for(int d=0;d<D;d++) x[d] = a_x[d]/radius; // normalize inputs, i.e. direction of input
-
-    // compute theta = cos(xi)
-    MatVecMul( m_X, x, theta, N, D );
-
-    for(int n=0; n<N; n++) {
-        xi[n] = safeAcos(theta[n]);
-        if( theta[n] > theta_max ) {
-            active[n]   = false;
-            sin_xi[n]   = 1e-16;
-        }
-        else if ( theta[n] < -theta_max ) {
-            active[n]   = false;
-            sin_xi[n]   = 1e-16;
-        }
-        else {
-            active[n]   = true;
-            sin_xi[n]   = sqrt( 1.-theta[n]*theta[n]); // sin(xi[n]);
-        }
-    }
-    // symmetric case:
-    if( sym )
+    printf("n_dirs %i, N %i\n", n_dirs, N); fflush(stdout);
+    double * rhs = alloc_array( n_dirs*N ), * weights = alloc_array(n_dirs*N);
+    int offset = 0;
+    for( int i_dir=0; i_dir < n_dirs; i_dir++)
     {
-        // the intermediate vectors zeta_tilde and zeta_star are re-used in the gradient computation
-#pragma unroll (4)
-        for( int n=0; n<N; n++ ) {
-            zeta[n]         = exp(- gamma * xi[n]*xi[n] );
-            zeta_tilde[n]   = exp(- gamma * (PI-xi[n]) * (PI-xi[n]) );
-            zeta_star[n]    = zeta_tilde[n] + zeta[n];
-            if( b_dzeta || b_ddzeta )
-            {
-                if(active[n])
-                {
-                    if(b_dzeta)     o_dzeta[n]    = - 2.*gamma*( zeta[n]*xi[n] - (PI-xi[n])*zeta_tilde[n] );
-                    if(b_ddzeta)    o_ddzeta[n]   = -2.*gamma * (
-                            zeta[n]         * ( 1. - 2.*gamma*xi[n]*xi[n]  )
-                        +   zeta_tilde[n]   * ( 1. - 2.*gamma*(PI-xi[n])*(PI-xi[n]) ) 
-                                            );
-                }
-                else
-                {
-                    if(b_dzeta)     o_dzeta[n]    = 0.;
-                    if(b_ddzeta)    o_ddzeta[n]   = 0.;
-                }
+        
+        double radius = norm( a_x + i_dir*D, D );
+        // in the case of a very small amplitude, interpolate value of the first pcw cubic function at radius=0.
+        for(int d=0;d<D;d++) x[d] = a_x[d+i_dir*D]/radius; // normalize inputs, i.e. direction of input
+
+        // compute theta = cos(xi)
+        MatVecMul( m_X, x, theta, N, D );
+
+        for(int n=0; n<N; n++) {
+            xi[n] = safeAcos(theta[n]);
+            if( theta[n] > theta_max ) {
+                active[n]   = false;
+                sin_xi[n]   = 1e-16;
+            }
+            else if ( theta[n] < -theta_max ) {
+                active[n]   = false;
+                sin_xi[n]   = 1e-16;
+            }
+            else {
+                active[n]   = true;
+                sin_xi[n]   = sqrt( 1.-theta[n]*theta[n]); // sin(xi[n]);
             }
         }
-    }
-    else
-    {
-    // for the non-symmetric case:
-#pragma unroll (4)
-        for(int n=0; n<N; n++)
+        // symmetric case:
+        if( sym )
         {
-            zeta[n] = exp(- gamma * xi[n]*xi[n] );
-            if( b_dzeta || b_ddzeta )
-            {
-                if( active[n] )
+            // the intermediate vectors zeta_tilde and zeta_star are re-used in the gradient computation
+    #pragma unroll (4)
+            for( int n=0; n<N; n++ ) {
+                zeta[n]         = exp(- gamma * xi[n]*xi[n] );
+                zeta_tilde[n]   = exp(- gamma * (PI-xi[n]) * (PI-xi[n]) );
+                zeta_star[n]    = zeta_tilde[n] + zeta[n];
+                if( b_dzeta || b_ddzeta )
                 {
-                    if(b_dzeta)     o_dzeta[n]    = - 2.*gamma*zeta[n]*xi[n];
-                    if(b_ddzeta)    o_ddzeta[n]   = -2.*gamma * zeta[n] * ( 1. - 2.*gamma*xi[n]*xi[n]  );
-                }
-                else
-                {
-                    if(b_dzeta)     o_dzeta[n]    = 0.;
-                    if(b_ddzeta)    o_ddzeta[n]   = 0.;
+                    if(active[n])
+                    {
+                        if(b_dzeta)     o_dzeta[n+offset]    = - 2.*gamma*( zeta[n]*xi[n] - (PI-xi[n])*zeta_tilde[n] );
+                        if(b_ddzeta)    o_ddzeta[n+offset]   = -2.*gamma * (
+                                zeta[n]         * ( 1. - 2.*gamma*xi[n]*xi[n]  )
+                            +   zeta_tilde[n]   * ( 1. - 2.*gamma*(PI-xi[n])*(PI-xi[n]) ) 
+                                                );
+                    }
+                    else
+                    {
+                        if(b_dzeta)     o_dzeta[n+offset]    = 0.;
+                        if(b_ddzeta)    o_ddzeta[n+offset]   = 0.;
+                    }
                 }
             }
         }
+        else
+        {
+        // for the non-symmetric case:
+    #pragma unroll (4)
+            for(int n=0; n<N; n++)
+            {
+                zeta[n] = exp(- gamma * xi[n]*xi[n] );
+                if( b_dzeta || b_ddzeta )
+                {
+                    if( active[n] )
+                    {
+                        if(b_dzeta)     o_dzeta[n+offset]    = - 2.*gamma*zeta[n]*xi[n];
+                        if(b_ddzeta)    o_ddzeta[n+offset]   = -2.*gamma * zeta[n] * ( 1. - 2.*gamma*xi[n]*xi[n]  );
+                    }
+                    else
+                    {
+                        if(b_dzeta)     o_dzeta[n+offset]    = 0.;
+                        if(b_ddzeta)    o_ddzeta[n+offset]   = 0.;
+                    }
+                }
+            }
+        }
+        
+        if( b_zeta ) 
+        {
+#pragma unroll (4)
+            for(int n=0; n<N; n++)
+                o_zeta[n+offset]=zeta[n];
+        }
+
+        if( sym )
+        {
+#pragma unroll (4)
+            for(int n=0; n<N; n++)
+                rhs[n_dirs*n+i_dir]=zeta_star[n];
+        }
+        else
+        {        
+#pragma unroll (4)
+            for(int n=0; n<N; n++)
+                rhs[n_dirs*n+i_dir]=zeta[n];
+        }
+        offset += N;
     }
+
+//     SolveByFactorization( m_Kf, rhs, o_W, w_i, N, 1 );
+    SolveByFactorization( m_Kf, rhs, o_W, w_i, N, n_dirs );
     
-    if( sym )
-        SolveByFactorization( m_Kf, zeta_star, o_W, w_i, N, 1);
-    else
-        SolveByFactorization( m_Kf, zeta, o_W, w_i, N, 1);
-    
+    free_array(&rhs);
+    free_array(&weights);
 }
+// /* *************************************************************************************** */
+// void TangentialInterpolation::Weights(
+//         int    n_vec,       /*!< [in]  number of input vector */
+//         double * o_W,       /*!< [out] (n x n_vec) matrix \c W of weights */
+//         const double * a_x, /*!< [in]  (n_vec x D) matrix containing directions as /direction \c X */
+//         double * w_d        /* sufficiently large working array of doubles */)
+// {
+// 
+//     assert_msg( 1==0, "ERROR: Implementation of TangentialInterpolationPseudoSym::Weights() with multiple r.h.s. is yet outstanding\n");
+// 
+//     if( !init ) { InitializeKernelMethod(); }
+// 
+// //     double * X = w_d;
+// //     double * THETA = w_d + n_vec*D;
+// //     double * XI = THETA + n_vec;
+// //     double * ZETA = XI + n_vec;
+// //     for( int i_dir = 0; i_dir < n_vec; i_dir++ )
+// //     {
+// //         double radius[i_dir] = norm( a_x, D );
+// //         for(int d=0;d<D;d++) X[i_dir*D+d] = a_x[i_dir*D+d]/radius; // normalize inputs, i.e. direction of input
+// //     }
+// //     // compute theta = cos(xi)
+// //     MatMatTMul( m_X, X, N, D, n_vec );
+// // #pragma unroll 4
+// //     for(int n=0; n<N*n_vec; n++) {
+// //         XI[n] = safeAcos(THETA[n]);
+// //         ZETA[n] = exp( - gamma * XI[n] * XI[n] );
+// //         if( sym )
+// //             ZETA[n] += exp( - gamma * (PI-XI[n]) * (PI-XI[n]) );
+// //     }
+// // 
+// //     if( sym )
+// //         SolveByFactorization( m_Kf, zeta_star, o_W, w_i, N, n_vec );
+// //     else
+// //         SolveByFactorization( m_Kf, zeta, o_W, w_i, N, n_vec );
+// }
 /* *************************************************************************************** */
 void TangentialInterpolation::InitializeKernelMethod( )
 {
-    if( init ) {
-        free_array( &m_K );
-        free_array( &m_Kf );
-        delete [] w_i;      w_i = 0;
-    }
-
-    m_K = alloc_array( N*N );
-    m_Kf = alloc_array( N*N );
+//     if( init ) {
+//         free_array( &m_K );
+//         free_array( &m_Kf );
+//         delete [] w_i;      w_i = 0;
+//     }
+// 
+//     m_K = alloc_array( N*N );
+//     m_Kf = alloc_array( N*N );
     // compute the kernel matrix
-    double tmp_alpha = 0.;
-    for(int n=0;n<N;n++)
-    {
-        for(int n2=n;n2<N;n2++)
-        {
-            tmp_alpha  = safeAcos( VecVecMul( m_X + n*D, m_X + n2*D, D ) );
-            if ( sym )
-                    m_K[n*N+n2]  = exp(-gamma*tmp_alpha*tmp_alpha)  +  exp(-gamma*(PI-tmp_alpha)*(PI-tmp_alpha));
-            else  
-                    m_K[n*N+n2]  = exp(-gamma*tmp_alpha*tmp_alpha);
-            m_K[n2*N+n] = m_K[n*N+n2];
-        }
-        m_K[n*(N+1)] += lambda;
-    }
-
-    // make sure the working array has the appropriate size
-    if( w_i != 0 ) { delete [] w_i; w_i = 0; }
-    w_i = new int [ 32*N_alloc*N_alloc ];
+    RecomputeKernelMatrix();
     Factorize( m_K, m_Kf, w_i, N );
+
     init    = true;
+}
+/* *************************************************************************************** */
+void   TangentialInterpolation::SetGamma( const double a_gamma )
+{
+    gamma = a_gamma;
+    if(init)    { RecomputeKernelMatrix(); }
+    else        { InitializeKernelMethod();}
 }
 /* *************************************************************************************** */
 void TangentialInterpolation::SetLambda( const double a_lambda )
@@ -285,3 +347,216 @@ void TangentialInterpolation::RecomputeKernelMatrix()
 
 }
 /* *************************************************************************************** */
+TangentialInterpolationPseudoSym::TangentialInterpolationPseudoSym()
+{
+    zero_pointers();
+    
+}
+
+void TangentialInterpolationPseudoSym::zero_pointers()
+{
+    TangentialInterpolation::zero_pointers();
+    m_Kdiff     = 0;
+    m_Kdiff_f   = 0;
+    w_s         = 0;
+    w_diff_i    = 0;
+    sym         = true; // enforeces allocation of zeta_star and zeta_tilde!
+}
+
+TangentialInterpolationPseudoSym::~TangentialInterpolationPseudoSym()
+{
+    Free();
+    
+}
+void TangentialInterpolationPseudoSym::Free()
+{
+    TangentialInterpolation::Free();
+    free_array( &m_Kdiff );
+    free_array( &m_Kdiff_f );
+    free_array( &w_s );
+    delete [] w_diff_i;  w_diff_i = 0;
+    
+}
+
+void TangentialInterpolationPseudoSym::Allocate( int a_N_alloc, const int a_D )
+{
+    Free();
+    TangentialInterpolation::Allocate( a_N_alloc, a_D );
+    m_Kdiff     = alloc_array( a_N_alloc*a_N_alloc );
+    m_Kdiff_f   = alloc_array( a_N_alloc*a_N_alloc );
+    w_diff_i    = new int [ 32*a_N_alloc*a_N_alloc];
+    w_s         = alloc_array( a_N_alloc );
+    
+}
+
+void TangentialInterpolationPseudoSym::RecomputeKernelMatrix()
+{
+//     printf("\n\n\nKERNEL MATRIX\n\n\n\nDERIVED\n");
+//     fflush(stdout);
+    double tmp_alpha = 0., A=0., B=0.;
+    for(int n1=0;n1<N;n1++)
+    {
+        for(int n2=n1;n2<N;n2++)
+        {
+            tmp_alpha  = safeAcos( VecVecMul( m_X + n1*D, m_X + n2*D, D ) );
+            A = exp(-gamma*tmp_alpha*tmp_alpha);
+            B = exp(-gamma*(PI-tmp_alpha)*(PI-tmp_alpha));
+            m_K[n1*N+n2]        = A + B;
+            m_Kdiff[n1*N+n2]    = A - B;
+            m_K[n2*N+n1]        = m_K[n1*N+n2];
+            m_Kdiff[n2*N+n1]    = m_Kdiff[n1*N+n2];
+        }
+        m_K[n1*(N+1)]       += lambda; // add regression parameter
+        m_Kdiff[n1*(N+1)]   += lambda; // add regression parameter
+    }
+
+    // store LDL factorization of kernel matrix
+    Factorize( m_K, m_Kf, w_i, N );
+    Factorize( m_Kdiff, m_Kdiff_f, w_diff_i, N );
+    
+}
+
+void TangentialInterpolationPseudoSym::Weights(
+        double * o_W,       /* [out] vector \c W of weights */
+        const int n_dirs,   /* [in] number of directions in a_x */
+        const double * a_x, /* [in] vector/direction \c X */
+        double * o_zeta,    /* [out] vector \c W of zeta values (if not needed set to NULL) */
+        double * o_dzeta,   /* [out] vector \c W of dzeta values (if not needed set to NULL) */
+        double * o_ddzeta   /* [out] vector \c W of dzeta values (if not needed set to NULL) */
+                )
+{
+//     printf("INIT? %i \n", init);
+    
+    const bool b_zeta       = (o_zeta != 0);
+    const bool b_dzeta      = (o_dzeta != 0);
+    const bool b_ddzeta     = (o_ddzeta != 0);
+
+    if( !init ) { InitializeKernelMethod(); }
+
+    double * rhs_a = alloc_array( n_dirs*N ), * rhs_b = alloc_array( n_dirs*N ), * weights = alloc_array(n_dirs*2*N);
+//     printf("# initialized\n");
+//     fflush(stdout);
+    int offset = 0;
+    for( int i_dir = 0; i_dir < n_dirs; i_dir++ )
+    {
+        
+        double radius = norm( a_x + i_dir*D, D );
+        // in the case of a very small amplitude, interpolate value of the first pcw cubic function at radius=0.
+        for(int d=0;d<D;d++) x[d] = a_x[d+i_dir*D]/radius; // normalize inputs, i.e. direction of input
+
+        // compute theta = cos(xi)
+        MatVecMul( m_X, x, theta, N, D );
+
+        for(int n=0; n<N; n++) {
+            xi[n] = safeAcos(theta[n]);
+            if( theta[n] > theta_max ) {
+                active[n]   = false;
+                sin_xi[n]   = 1e-16;
+            }
+            else if ( theta[n] < -theta_max ) {
+                active[n]   = false;
+                sin_xi[n]   = 1e-16;
+            }
+            else {
+                active[n]   = true;
+                sin_xi[n]   = sqrt( 1.-theta[n]*theta[n]); // sin(xi[n]);
+            }
+        }
+    //     printf("# xi ok\n");
+    //     fflush(stdout);
+        // symmetric case:
+        // the intermediate vectors zeta_tilde and zeta_star are re-used in the gradient computation
+    #pragma unroll (4)
+        for( int n=0; n<N; n++ ) {
+            zeta[n]         = exp(- gamma * xi[n]*xi[n] );
+            zeta_tilde[n]   = exp(- gamma * (PI-xi[n]) * (PI-xi[n]) );
+            zeta_star[n]    = zeta_tilde[n] + zeta[n];
+            if( b_dzeta || b_ddzeta )
+            {
+                if(active[n])
+                {
+                    if(b_dzeta)     o_dzeta[n+offset]    = - 2.*gamma*( zeta[n]*xi[n] - (PI-xi[n])*zeta_tilde[n] );
+                    if(b_ddzeta)    o_ddzeta[n+offset]   = -2.*gamma * (
+                            zeta[n]         * ( 1. - 2.*gamma*xi[n]*xi[n]  )
+                        +   zeta_tilde[n]   * ( 1. - 2.*gamma*(PI-xi[n])*(PI-xi[n]) ) 
+                                            );
+                }
+                else
+                {
+                    if(b_dzeta)     o_dzeta[n+offset]    = 0.;
+                    if(b_ddzeta)    o_ddzeta[n+offset]   = 0.;
+                }
+            }
+        }
+#pragma unroll (4)
+        if( b_zeta ) 
+            for(int n=0; n<N; n++)
+                o_zeta[n+offset]=zeta[n];
+        
+        
+#pragma unroll (4)
+        for(int n=0; n<N; n++)
+            zeta[n]-=zeta_tilde[n];
+#pragma unroll (4)
+        for(int n=0; n<N; n++)
+            rhs_a[n*n_dirs+i_dir] = zeta[n];
+#pragma unroll (4)
+        for(int n=0; n<N; n++)
+            rhs_b[n*n_dirs+i_dir] = zeta_star[n];
+        offset += N;
+    }
+//     printf("# zeta, zeta_tilde, zeta_star ok\n");
+//     fflush(stdout);
+
+
+    SolveByFactorization( m_Kf, rhs_a, weights, w_i, N, n_dirs );
+    SolveByFactorization( m_Kdiff_f, rhs_b, weights+n_dirs*N, w_i, N, n_dirs );
+    for(int i_dir=0;i_dir<n_dirs;i_dir++)
+    {
+#pragma unroll (4)
+        for(int n=0; n<N; n++)
+        {
+            o_W[i_dir*2*N+n] = 0.5*(weights[n*n_dirs+i_dir]+weights[(N+n)*n_dirs+i_dir]);
+            o_W[i_dir*2*N+N+n] = 0.5*(weights[n*n_dirs+i_dir]-weights[(N+n)*n_dirs+i_dir]);
+        }
+    }
+    free_array(&weights);
+    free_array(&rhs_a);
+    free_array(&rhs_b);
+    
+}
+// /* *************************************************************************************** */
+// void TangentialInterpolationPseudoSym::Weights(
+//         int    n_vec,       /*!< [in]  number of input vector */
+//         double * o_W,       /*!< [out] (n x n_vec) matrix \c W of weights */
+//         const double * a_x, /*!< [in]  (n_vec x D) matrix containing directions as /direction \c X */
+//         double * w_d        /* sufficiently large working array of doubles */)
+// {
+//     assert_msg( 1==0, "ERROR: Implementation of TangentialInterpolationPseudoSym::Weights() with multiple r.h.s. is yet outstanding\n");
+// 
+//     if( !init ) { InitializeKernelMethod(); }
+// 
+// //     double * X = w_d;
+// //     double * THETA = w_d + n_vec*D;
+// //     double * XI = THETA + n_vec;
+// //     double * ZETA = XI + n_vec;
+// //     for( int i_dir = 0; i_dir < n_vec; i_dir++ )
+// //     {
+// //         double radius[i_dir] = norm( a_x, D );
+// //         for(int d=0;d<D;d++) X[i_dir*D+d] = a_x[i_dir*D+d]/radius; // normalize inputs, i.e. direction of input
+// //     }
+// //     // compute theta = cos(xi)
+// //     MatMatTMul( m_X, X, N, D, n_vec );
+// // #pragma unroll 4
+// //     for(int n=0; n<N*n_vec; n++) {
+// //         XI[n] = safeAcos(THETA[n]);
+// //         ZETA[n] = exp( - gamma * XI[n] * XI[n] );
+// //         if( sym )
+// //             ZETA[n] += exp( - gamma * (PI-XI[n]) * (PI-XI[n]) );
+// //     }
+// // 
+// //     if( sym )
+// //         SolveByFactorization( m_Kf, zeta_star, o_W, w_i, N, n_vec );
+// //     else
+// //         SolveByFactorization( m_Kf, zeta, o_W, w_i, N, n_vec );
+// }

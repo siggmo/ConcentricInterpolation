@@ -11,6 +11,7 @@ Interpolant::~Interpolant() {
 }
 
 void Interpolant::DefaultInit() {
+    n_int_data = 2;
     X   = 0;
     m_D = 0;
     dim = 0;
@@ -35,6 +36,13 @@ void Interpolant::Allocate( const int a_n, const int a_dim )
     X   = alloc_array(n);
     m_D = alloc_array(2*n*dim);
 }
+
+const int Interpolant::NIntervals() const
+{ return n; }
+
+const int Interpolant::DataSize() const
+{ return n_int_data*dim; }
+
 
 void Interpolant::Train(
     int n_x,        const double * const x,
@@ -88,6 +96,11 @@ void Interpolant::InterpolationWeights( const double x, double * o_w) const
     InterpolationWeights( idx, x, o_w );
 }
 
+const double * const Interpolant::InterpolationData( const int idx ) const
+{
+    return m_D + idx*dim*n_int_data;
+}
+
 /* ************************************************************************ */
 /* ************************************************************************ */
 /* ************************************************************************ */
@@ -112,6 +125,11 @@ void InterpolantQuad::Allocate( const int a_n, const int a_dim )
     X   = alloc_array(n);
     m_D = alloc_array(3*n*dim);
 }
+void InterpolantQuad::DefaultInit() {
+    Interpolant::DefaultInit();
+    n_int_data = 3;
+}
+
 
 void InterpolantQuad::Train( int        n_x,
                 const double * const    x,
@@ -209,7 +227,6 @@ void InterpolantQuad::InterpolationWeights( const int idx, const double x, doubl
 void InterpolantQuad::Interpolate( const double x, double * v_Data )
 {
     int idx = Interval( x );
-    printf("idx: %i, n: %i\n", idx, n);
     InterpolationWeights( idx, x, w );
     size_t ct = 3*dim*idx;
     for(int d = 0; d<dim; d++)
@@ -228,3 +245,132 @@ void InterpolantQuad::InterpolationWeights( const double x, double * o_w) const
 /* ************************************************************************ */
 /* ************************************************************************ */
 /* ************************************************************************ */
+
+RadialInterpolation::RadialInterpolation()
+{
+    DefaultInit();
+}
+RadialInterpolation::~RadialInterpolation()
+{
+    Free();
+}
+
+void RadialInterpolation::Free()
+{
+    In = 0;
+    free_array( &m_I );
+    free_array( &w );
+    DefaultInit();
+}
+
+void RadialInterpolation::DefaultInit()
+{
+    w       = 0;
+    n_dir   = 0;
+    dim     = 0;
+    n_w     = 0;
+    n_input = 0;
+    m_I     = 0;
+    In      = 0;
+    ordered = false;
+}
+
+void RadialInterpolation::SetInterpolant( Interpolant * a_In )
+{
+    In = a_In;
+}
+
+void RadialInterpolation::Allocate( const int a_n_dir )
+{
+    assert_msg( In != 0, "ERROR in RedialInterpolation::Allocate: Interpolate must be set, first!\n");
+    
+    Interpolant * In_tmp = In;
+    Free();
+    In = In_tmp; In_tmp = 0; // recover existing interpolant
+
+    n_dir   = a_n_dir;
+    dim     = In->Dim();
+    n_w     = In->DataSize() / dim;
+    n_int   = In->NIntervals();
+    // allocate memory for interpolation data and for the weights
+    m_I     = alloc_array( n_dir * n_w * dim * n_int );
+    w       = alloc_array( n_w );
+    ordered = false;
+}
+
+int RadialInterpolation::Dim() const {
+    return dim;
+}
+
+int RadialInterpolation::DataSize() const {
+    return n_w*dim;
+}
+
+int RadialInterpolation::NWeights() const {
+    return n_w;
+}
+
+int RadialInterpolation::NInput() const {
+    return n_input;
+}
+
+void RadialInterpolation::AddData( Interpolant * In )
+{
+    assert_msg( (In->NIntervals() == n_int), "ERROR in RadialInterpolation::AddData: number of intervals is not matching the pre-defined number\n");
+    
+    AddData( In->InterpolationData(0) );
+}
+
+void RadialInterpolation::AddData( const double * const m_D )
+{
+    assert_msg( n_input < n_dir, "ERROR in RadialInterpolation::AddData: number of pre-allocated directions exceeded\n");
+    memcpy( m_I + n_input*n_w*dim*n_int, m_D, sizeof(double)*n_w*dim*n_int );
+    n_input++;
+    ordered = false;
+}
+
+void RadialInterpolation::ReorderData()
+{
+    if( ordered ) return;
+    
+    double * tmp = alloc_array( n_int * dim * n_w * n_dir );
+    
+    const int old0 = n_w*dim*n_int, old1 = n_w*dim, old2 = n_w, old3 = 1;
+    const int new0 = n_w*dim*n_dir, new1 = n_w*dim, new2 = n_w, new3 = 1;
+    
+    for( int i_input=0; i_input < n_dir; i_input++)
+    {
+        for( int i_x =0; i_x<n_int; i_x++ )
+        {
+            for(int d=0; d<dim; d++ )
+            {
+                for(int i_w=0;i_w<n_w;i_w++)
+                {
+                    tmp[ i_x*new0 + i_input *new1 + d*new2 + i_w * new3 ] =
+                    m_I[ i_input *old0 + i_x*old1 + d*old2 + i_w * old3 ];
+                }
+            }
+        }
+    }
+    
+    
+    free_array( &m_I );
+    
+    m_I = tmp;
+    tmp = 0;
+    
+    ordered = true;
+}
+
+void RadialInterpolation::Interpolate( const double x, double * m_out )
+{
+    assert_msg( ordered, "ERROR in RadialInterpolation::Interpolate: data is not reorderd (call ReorderData() first)\n");
+    int idx=In->Interval(x);
+    In->InterpolationWeights( idx, x, w );
+    MatVecMul( m_I + idx * dim * n_w * n_dir, w, m_out, dim*n_dir, n_w );
+}
+
+const double * const RadialInterpolation::Data() const
+{
+    return m_I;
+}
