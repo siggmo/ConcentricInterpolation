@@ -1,5 +1,5 @@
 ### for debugging try:
-OPT=-O0 -g
+OPT=-O0 -g -std=c++11
 ### for performance related builds use
 # OPT=-O6
 AR=ar
@@ -7,7 +7,7 @@ CXX=g++
 INC=-I.
 
 # REQUIREMENTS
-# 1. lapacke and GNU GSL must be installed (e.g. in ubuntu: "sudo apt-get install liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0" )
+# 1. lapacke and GNU GSL must be installed (e.g. in ubuntu: "sudo apt install liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0" )
 # 2. Make sure that the path pointing to the static lapacke library is included in the linker command
 LIB=-L. -L /usr/lib/x86_64-linux-gnu/\
 		-Wl,--start-group \
@@ -20,7 +20,7 @@ LIB=-L. -L /usr/lib/x86_64-linux-gnu/\
 
 default:	lib
 
-lib:		util interpolation cubic quadratic data data_util dist_func obj_func TI RI
+lib:		RI TI util interpolation cubic quadratic data data_util dist_func obj_func
 	$(AR) r libconinter.a			\
 	        cubic_interpolant.o		\
 	        concentric_interpolation.o	\
@@ -73,9 +73,3 @@ dist_func:
 
 obj_func:
 	$(CXX) $(OPT) -c objective_functions.cxx $(INC)
-
-TI:
-	$(CXX) $(OPT) -c tangential_interpolation.cxx $(INC)
-
-RI:
-	$(CXX) $(OPT) -c radial_interpolation.cxx $(INC)
