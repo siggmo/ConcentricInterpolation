@@ -3,28 +3,17 @@
 
 /*
  *  COPYRIGHT NOTES
- * 
+ *
  *  ConcentricInterpolation
- *  Copyright (C) 2019  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
+ *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
  *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * All rights reserved.
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *  (the full license is distributed together with the software in a file named
- *  LICENSE)
+ * This source code is licensed under the BSD 3-Clause License found in the
+ * LICENSE file in the root directory of this source tree.
  *
  *  This software package is related to the research article
- * 
+ *
  *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
  *                                     sets on spheres and their application in
  *                                     mesh-free interpolation and
@@ -32,17 +21,17 @@
  *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
  *     DOI   ...
  *     URL   dx.doi.org/...
- *  
+ *
  *  The latest version of this software can be obtained through
  *  https://github.com/EMMA-Group/ConcentricInterpolation
- *  
+ *
  */
 
 #include "concentric_interpolation.h"
 #include "data.h"
 #include "distance_functions.h"
 
-/*! \brief 
+/*! \brief
  * Interpolate data on a set of coordinates [OPTIONAL: compute the gradient and the Hessian, too] */
 void InterpolateOnSet(  ConcentricInterpolation * interpolation, /*!< [in] the interpolation scheme that will be evaluated */
                         Data * data_interpolation,              /*!< [in,out] a Data object containing the point coordinates for evaluation of the interpolation scheme, and the memory for the results */
@@ -51,12 +40,12 @@ void InterpolateOnSet(  ConcentricInterpolation * interpolation, /*!< [in] the i
                      );
 
 /*! \brief Class for evaluation of the distance function
- * 
+ *
  *  1) runs the interpolation
  *  2) computes "local distance", i.e. applies DistanceFunction_local \b<pointwise> to the interpolated value and to the reference value
  *  3) computes "global distance", i.e. applies DistanceFunction_global to the pointwise values of local distance
- *  4) computes objective function value, i.e. 
- * 
+ *  4) computes objective function value, i.e.
+ *
  * \see \GammaOptFunctional
  * \see \OptimizeGamma
  * \see \DistanceFunction
@@ -83,35 +72,35 @@ public:
     double * dist_local_values;                 /*!< point-wise distance (error) of interpolated values from reference values */
     double * dist_local_gradients;              /*!< point-wise distance (error) of approximate gradients from reference gradients */
     double * dist_local_hessians;               /*!< point-wise distance (error) of approximate Hessians from reference Hessians */
-    
+
     DistanceFunction_local * distfunc_local; /*!< local distance function */
     DistanceFunction_global* distfunc_global; /*!< global distance function */
     double (*objective_function)(const double, const double, const double); /*!< global objective function */
 };
 
-    
+
 
 
 /*! \brief Optimize gamma with respect to target data TODO incomplete!!!!
-    * 
+    *
     * This function searches \c gamma within the given limits such that the specified functional
     * is minimized. The evaluation points are the given target coordinates, i.e.
     * CreateTargetData must have been called before.
-    * 
-    * The cost functional GammaOptFunctional is minimized w.r.t. gamma. For this, the given 
+    *
+    * The cost functional GammaOptFunctional is minimized w.r.t. gamma. For this, the given
     * interval of gammas is bisected until either
     *    1) the given number of iterations is reached or
     *    2) gamma doesn't change significantly or
     *    3) the quality of the interpolation doesn't improve significantly anymore,
     * whatever occurs first.
-    * 
+    *
     * It is assumed that the quality is a convex function within the given gamma interval. This is
     * backed by experience for sufficiently short intervals and if \c gamma_min is not too small.
-    * 
+    *
     * Typically, we have found that \c gamma_min should be above 0.5. The value of a reasonable
     * \c gamma_max depends on the data, its dimension and on the number of training directions. It
     * might be necessary to call this function multiple times with different \c gamma limits.
-    * 
+    *
     * \see CreateTargetData
     * \see GammaOptFunctional
     * */

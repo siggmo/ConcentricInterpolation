@@ -3,28 +3,17 @@
 
 /*
  *  COPYRIGHT NOTES
- * 
+ *
  *  ConcentricInterpolation
- *  Copyright (C) 2019  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
+ *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
  *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * All rights reserved.
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *  (the full license is distributed together with the software in a file named
- *  LICENSE)
+ * This source code is licensed under the BSD 3-Clause License found in the
+ * LICENSE file in the root directory of this source tree.
  *
  *  This software package is related to the research article
- * 
+ *
  *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
  *                                     sets on spheres and their application in
  *                                     mesh-free interpolation and
@@ -32,10 +21,10 @@
  *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
  *     DOI   ...
  *     URL   dx.doi.org/...
- *  
+ *
  *  The latest version of this software can be obtained through
  *  https://github.com/EMMA-Group/ConcentricInterpolation
- *  
+ *
  */
 
 #include <math.h>
@@ -59,7 +48,7 @@ private:
     void DefaultInit();       //!< default initialization, sets all member variables zero and false
     void Allocate();          //!< allocates memory for member pointers
     void Free();              //!< frees memory allocated for member pointers
-    
+
 public:
     QuadraticInterpolant();
     QuadraticInterpolant(   const int a_num_support_r,      //!<[in] number of supporting radii
@@ -67,12 +56,12 @@ public:
                         const double * S   //!<[in] array of values at the supporting radii
                     );
     ~QuadraticInterpolant(); //!< calls Free()
-    
+
     void SetData(       const int a_num_training_r,  //!<[in] number of training radii, possibly not containing 0
                         const double * a_training_r, //!<[in] array of training radii, possibly not containing 0
                         const double * S           //!<[in] array of values at the supporting points
                 );                                          //!< sets up the function by computing the polynomial coefficients
-    
+
     // access functions (const-qualified)
     double Value( const double r    //!<[in] radius at which to evaluate the interpolant
                 ) const;            //!< returns the value of the piecewise cubic function at r

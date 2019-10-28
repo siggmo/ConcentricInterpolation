@@ -2,29 +2,26 @@
 
 /*
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( felix.fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( oliver.kunc@mechbau.uni-stuttgart.de )
+ *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
+ *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * All rights reserved.
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * This source code is licensed under the BSD 3-Clause License found in the
+ * LICENSE file in the root directory of this source tree.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  This software package is related to the research article
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *  
- *  
- *  For details or if you like this software please refer to LITERATURE which
- *  contains also BIBTEX information.
- *  
+ *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
+ *                                     sets on spheres and their application in
+ *                                     mesh-free interpolation and
+ *                                     differentiation'
+ *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
+ *     DOI   ...
+ *     URL   dx.doi.org/...
+ *
  *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *  
- *  
+ *
+ *
  */
 
 /* *************************************************************************************** */
@@ -82,7 +79,7 @@ distfunc_local(a_distfunc_local),
 distfunc_global(a_distfunc_global),
 objective_function(a_objective_function)
 {
-    // allocate memory for 
+    // allocate memory for
     dist_local_values = new double[P];
     dist_local_gradients = new double[P];
     dist_local_hessians = new double[P];
@@ -100,10 +97,10 @@ double TestOnSet::run(  const bool evaluate_gradients,
               )
 {
     // consistency check !( evaluate_hessians && !evaluate_gradients ) is done in InterpolateOnSet
-    
+
     // run the interpolation on data_interpolation.coordinates
     InterpolateOnSet( interpolation, &data_interpolation, evaluate_gradients, evaluate_hessians);
-    
+
     // compute the point-wise distances between interpolated data and reference data
     for(int p=0; p<P; p++)
     {
@@ -113,7 +110,7 @@ double TestOnSet::run(  const bool evaluate_gradients,
         if(evaluate_hessians)
             dist_local_hessians[p] = distfunc_local->eval_vector( data_interpolation.SafeAccess_hessians(p), data_reference->SafeAccess_hessians(p), D*D );
     }
-    
+
     // compute the global distances
     double dist_global_values    = distfunc_global->eval(dist_local_values, P);   /* distance of interpolated values to reference values */
     double disg_global_gradients = 0;
@@ -122,7 +119,7 @@ double TestOnSet::run(  const bool evaluate_gradients,
         disg_global_gradients = distfunc_global->eval(dist_local_gradients, P);/* distance of interpolated gradients to reference gradients */
     if(evaluate_hessians)
         dist_global_hessians  = distfunc_global->eval(dist_local_hessians, P); /* distance of interpolated Hessians to reference Hessians */
-    
+
     // return the value of the objective function
     return objective_function(dist_global_values, disg_global_gradients, dist_global_hessians);
 }
@@ -147,7 +144,7 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
     assert_msg(num_bisec>=0, "ERROR in OptimizeGamma : num_bisec must be non-negative\n");
     assert_msg(bisection_factor>0 && bisection_factor<2, "ERROR in OptimizeGamma : it must hold    0 < bisection_factor < 2  \n");
 
-    
+
     printf("\r$$$ Beginning optimization of gamma with the following parameters:\n");
     printf("$   gamma_min        = %lf\n", gamma_min);
     printf("$   gamma_max        = %lf\n", gamma_max);
@@ -156,10 +153,10 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
     printf("$   bisection_factor = %lf\n", bisection_factor);
     printf("$   do_gradients     = %i\n", int(do_gradients));
     printf("$   do_hessians      = %i\n", int(do_hessians));
-    
+
     // initialize the TestOnSet object s.t. there is permanent memory for interpolation results
     TestOnSet test_object(interpolation, data_reference, distfunc_local, distfunc_global, objective_function);
-    
+
     // initialize regular optimization
     double * gammas = new double[num_regular + 2];
     double dgamma = (gamma_max - gamma_min)/(num_regular + 1);
@@ -168,7 +165,7 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
     int ind_gamma_best = 0;
     double * obj_fcn_value = new double[num_regular + 2];  // obj_fcn_value for each gamma
     double obj_fcn_value_min = 9e99;                        // minimum of all the previous obj_fcn_value
-    
+
     // do regular optimization: sample the gammas grid from left to right and find its position with minimum obj_fcn_value
     printf("$   regular gamma optimization on the interval [%lf, %lf] with %i intermediate points:\n", gammas[0], gammas[num_regular + 1], num_regular);
     printf("$ #gamma     gamma      obj_fcn_value      new min?\n");
@@ -201,8 +198,8 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
     // finish regular optimization by assuring that the best gamma is not on the boundary
     assert_msg(ind_gamma_best!=0 && ind_gamma_best!= num_regular+1, "ERROR in OptimizeGamma : gamma_best is on boundary. restart with different boundaries.\n");
 
-    
-    
+
+
     // initialize bisectional algorithm by finding the best value of the neighboring gammas, i.e. gamma_2
     double gamma_2 = -1;
     double obj_fcn_value_2 = 9e99;
@@ -218,7 +215,7 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
         obj_fcn_value_2 = obj_fcn_value[ind_gamma_best+1];
         printf("$      best neighbor is next larger gamma (%lf) with obj_fcn_value %5.3le\n", gamma_2, obj_fcn_value_2);
     }
-    
+
     // do the bisection, i.e. evaluate within the interval and compare with the outer values
     if(num_bisec>0)
         printf("\n$   beginning bisection\n$ #gamma     gamma      obj_fcn_value      new min?\n");
@@ -264,13 +261,13 @@ double    OptimizeGamma(ConcentricInterpolation * interpolation,
         }
         keep_best_gamma = false;
     }
-    
+
     printf("$   finished gamma optimization with gamma = %5.3le yielding obj_fcn_value %5.3le\n", gamma_best, obj_fcn_value_min);
-    
+
     // terminate
     delete [] obj_fcn_value; obj_fcn_value = 0;
     delete [] gammas; gammas = 0;
-    
+
     return gamma_best;
 }
 /* *************************************************************************************** */
@@ -285,7 +282,7 @@ void BuildInterpolationFromTrainingData(
 
     // allocate the memory in the interpolation
     interpolation.Allocate(N,D);
-    
+
     // loop over directions: add data along each direction, i.e. build the cubic interpolants
     for(int n=0; n<N; n++)
         interpolation.AddInterpolationDataDF(
@@ -303,12 +300,12 @@ void WriteDataGnuplot( Data & data, char * output_filename, const bool write_coo
         "ERROR in WriteDataGnuplot: data must have been initialized\n");
     const int D = data.D;
     const int P = data.P;
-    
+
     // store results into the output file. see the gnuplot script for visualization suggestions.
     printf("$$$ Storing data to  %s\n", output_filename);
     FILE * OUTPUT_FILE = fopen(output_filename, "w");
     assert_msg( OUTPUT_FILE!=0, "ERROR in WriteDataGnuplot: output file could not be opened\n");
-    
+
     // print header (as a comment, i.e. preceeded by #)
     fprintf(OUTPUT_FILE, "#");
     if(write_coordinates)
@@ -323,7 +320,7 @@ void WriteDataGnuplot( Data & data, char * output_filename, const bool write_coo
         for(int dd=0; dd<D*D; dd++)
             fprintf(OUTPUT_FILE,        "     Hessian component %3i   ", dd);
     fprintf(OUTPUT_FILE, "\n");
-    
+
     // print data
     for(int p=0; p<data.P; p++)
     {

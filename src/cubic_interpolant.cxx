@@ -1,29 +1,26 @@
 #include <cubic_interpolant.h>
 /*
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( felix.fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( oliver.kunc@mechbau.uni-stuttgart.de )
+ *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
+ *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * All rights reserved.
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * This source code is licensed under the BSD 3-Clause License found in the
+ * LICENSE file in the root directory of this source tree.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  This software package is related to the research article
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *  
- *  
- *  For details or if you like this software please refer to LITERATURE which
- *  contains also BIBTEX information.
- *  
+ *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
+ *                                     sets on spheres and their application in
+ *                                     mesh-free interpolation and
+ *                                     differentiation'
+ *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
+ *     DOI   ...
+ *     URL   dx.doi.org/...
+ *
  *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *  
- *  
+ *
+ *
  */
 
 CubicInterpolant::CubicInterpolant() {
@@ -78,7 +75,7 @@ void CubicInterpolant::SetData( const int a_num_support_r, const double * a_supp
     bool has_zero = ( fabs( a_support_r[0] ) < 1e-16);
     if(!has_zero) num_support_r++;
 //  assert_msg( fabs( a_support_r[0] ) > 1e-16, "Error in CubicInterpolant: the zero value is not contained");
-    
+
     Allocate();
     if(!has_zero) {
         // add data for zero: zero function value and zero slope at support_r=0:
@@ -90,11 +87,11 @@ void CubicInterpolant::SetData( const int a_num_support_r, const double * a_supp
     }
     double S1,S2,dS1,dS2,dr;
     const int zero_offset=( has_zero ? 0 : 1 );
-    
+
     // set support_r to a_support_r with initial 0
     support_r[0] = 0.;
     for( int iradius=0; iradius<a_num_support_r; iradius++) support_r[iradius+zero_offset] = a_support_r[iradius];
-    
+
     for( int iradius=0; iradius<a_num_support_r-1; iradius++)
     {
         if( iradius > 0 ) assert_msg( a_support_r[iradius]<a_support_r[iradius+1], "Error in CubicInterpolant: a_support_r[iradius]<a_support_r[iradius+1] is not guaranteed\n");
@@ -102,13 +99,13 @@ void CubicInterpolant::SetData( const int a_num_support_r, const double * a_supp
         S1  = S[iradius];       dS1 = dS[iradius];
         S2  = S[iradius+1]; dS2 = dS[iradius+1];
         dr  = a_support_r[iradius+1]-a_support_r[iradius];
-        
+
         poly_a[i] = S1;
         poly_b[i] = dS1;
         poly_d[i] = ( (dS2+dS1) * dr + 2.*(S1-S2) )/ (dr*dr*dr);
         poly_c[i] = (S2-S1-dS1*dr-poly_d[i]*dr*dr*dr)/(dr*dr);
     }
-    
+
     // set initialization flag
     init = true;
 }
@@ -151,7 +148,7 @@ double CubicInterpolant::Interpolate( const double r, double & dS, double & ddS 
     }
     if(!sc) idx = num_support_r-2; // extrapolate second to last cubic function
     const double dr=r-support_r[idx];
-    
+
     dS      = poly_b[idx]+dr*(2.*poly_c[idx]+3.0*dr*poly_d[idx]);
     ddS     = 2.*poly_c[idx]+6.*dr*poly_d[idx];
     return poly_a[idx]+dr*(poly_b[idx]+dr*(poly_c[idx]+dr*poly_d[idx]));

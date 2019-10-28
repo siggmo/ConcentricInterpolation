@@ -1,29 +1,26 @@
 /* *************************************************************************************** */
 /*
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( felix.fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( oliver.kunc@mechbau.uni-stuttgart.de )
+ *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
+ *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * All rights reserved.
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * This source code is licensed under the BSD 3-Clause License found in the
+ * LICENSE file in the root directory of this source tree.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  This software package is related to the research article
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *  
- *  
- *  For details or if you like this software please refer to LITERATURE which
- *  contains also BIBTEX information.
- *  
+ *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
+ *                                     sets on spheres and their application in
+ *                                     mesh-free interpolation and
+ *                                     differentiation'
+ *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
+ *     DOI   ...
+ *     URL   dx.doi.org/...
+ *
  *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *  
- *  
+ *
+ *
  */
 
 #include <concentric_interpolation.h>
@@ -52,7 +49,7 @@ ConcentricInterpolation::ConcentricInterpolation( const bool a_sym )
 void ConcentricInterpolation::zero_pointers()
 {
     // initialize pointers to NULL
-    
+
     // private members:
     S           = 0;
     w_i         = 0;
@@ -161,9 +158,9 @@ void ConcentricInterpolation::AddInterpolationDataDF( const double * a_radii, co
 {
     assert_msg( N < N_alloc, "ERROR in ConcentricInterpolation::AddInterpolationDataDF: allocation size too small (trying to add another entry although n=N_alloc)\n");
     init = false; // reset initialization flag since kernel matrix needs to be re-computed!
-        
+
     S[N].SetData( a_n, a_radii, a_f, a_df );
-    
+
     const double l = norm( a_X, D );
     for(int d=0; d<D; d++) m_X[N*D+d] = a_X[d] / l; // make sure the length is 1 for the directions
     N++; // increment the counter for the dimension of m_X, i.e. the number of training directions
@@ -181,7 +178,7 @@ double ConcentricInterpolation::Interpolate( const double * a_x )
             xi[n]       = 0.;
             sin_xi[n]   = 1e-16;
         }
-        
+
         double f, df, ddf;
         f=Sq[0].Interpolate( 0., df, ddf);
         SetVector( dv, N, df );
@@ -189,10 +186,10 @@ double ConcentricInterpolation::Interpolate( const double * a_x )
         return f;
     }
     RadialInterpolation( radius ); // updates v, dv, ddv
-    
+
     SolveByFactorization(m_Kf, v, Ki_v, w_i, N);
-    
-    
+
+
     for(int d=0;d<D;d++) x[d] = a_x[d]/radius; // normalize inputs, i.e. direction of input
 
     MatVecMul( m_X, x, theta, N, D );
@@ -212,7 +209,7 @@ double ConcentricInterpolation::Interpolate( const double * a_x )
             sin_xi[n]   = sqrt( 1.-theta[n]*theta[n]); // sin(xi[n]);
         }
     }
-    
+
     // symmetric case:
     if( sym )
     {
@@ -227,7 +224,7 @@ double ConcentricInterpolation::Interpolate( const double * a_x )
                 dzeta[n]    = - 2.*gamma*( zeta[n]*xi[n] - (PI-xi[n])*zeta_tilde[n] );
                 ddzeta[n]   = -2.*gamma * (
                         zeta[n]         * ( 1. - 2.*gamma*xi[n]*xi[n]  )
-                    +   zeta_tilde[n]   * ( 1. - 2.*gamma*(PI-xi[n])*(PI-xi[n]) ) 
+                    +   zeta_tilde[n]   * ( 1. - 2.*gamma*(PI-xi[n])*(PI-xi[n]) )
                                         );
             }
             else
@@ -238,7 +235,7 @@ double ConcentricInterpolation::Interpolate( const double * a_x )
         }
         return VecVecMul( Ki_v, zeta_star, N );
     }
-    
+
     // for the non-symmetric case:
 #pragma unroll (4)
     for(int n=0; n<N; n++)
@@ -261,16 +258,16 @@ double ConcentricInterpolation::Interpolate( const double * a_x )
 void ConcentricInterpolation::Gradient( double * grad )
 {
     // ASSERTION: Interpolate has been called before (re-uses zeta and Ki_v)
-    
-    /* note: instead of locally computing the directions Q_i pointing from the query 
+
+    /* note: instead of locally computing the directions Q_i pointing from the query
      * direction N to the training directions N_n, and adding them with weights tau
      * to the radial stress, we
      *    1) compute the Q_n without the subtraction of N, and sum over n
      *    2) substract the part of the part to be substracted (i.e. the part of the N_i that is parallel to N)
      *       using only the theta_i --> only one vector summation needed
      */
-    
-    
+
+
     SetVector( grad, D, 0. );
     // if the input has negligible norm, then return 0 (gradient not defined at 0!)
     if( radius < small ) return;
@@ -278,7 +275,7 @@ void ConcentricInterpolation::Gradient( double * grad )
     // FF: adjust equation number
     // see paper (65):
     // sigma = x * (s'^T * Ki * v) - 1/radius ( s^T * Ki )_j dzeta_j Q_j
-    
+
     // recall x from Interpolate(): normalized input, i.e. direction of input to Interpolate()
     double  factor;
 
@@ -336,7 +333,7 @@ void ConcentricInterpolation::AutodefineJ0( const double w_psi, const double w_d
     // initialize to zero
     for( int d_s=0; d_s<D_sym; d_s++ )          v_rhs[d_s]  = 0.;
     for( int dd_s=0; dd_s<D_sym*D_sym; dd_s++ ) m_H[dd_s]   = 0.;
-    
+
     // assemble Hessian and right hand side
     double v0, dv0, x0;
     for(int n=0; n<N; n++)
@@ -354,7 +351,7 @@ void ConcentricInterpolation::AutodefineJ0( const double w_psi, const double w_d
         S[n].FirstDV( dv0, x0 );
         const double f = w1 * ( 0.5*v0*x0*x0 ) + w2 * ( dv0*x0 ); // factor for RHS vector
         const double g = w1 * ( 0.25*x0*x0*x0*x0 ) + w2 * ( x0*x0 ); // factor for Hessian
-        
+
         for( int d=0; d<D_sym; d++ ) v_rhs[d] += f*n_tmp[d];
         for( int d=0; d<D_sym; d++ )
         {
@@ -392,7 +389,7 @@ void ConcentricInterpolation::Hessian( double * hess )
             hess[dd]=m_J0[dd];
         return;
     }
-    
+
     // initialize quantities to zero
     double  beta=0., alpha=0., dalpha = 0., omega = 0.;
     double Q[D], Qbar[D];
@@ -402,7 +399,7 @@ void ConcentricInterpolation::Hessian( double * hess )
 
     // compute Ki_dv, i.e. product of inverse kernel matrix and vector of radial derivatives
     SolveByFactorization(m_Kf, dv, Ki_dv, w_i, N);
-    
+
     // set up the upper half of the Hessian
     for(int n=0; n<N; n++)
     {
@@ -410,7 +407,7 @@ void ConcentricInterpolation::Hessian( double * hess )
         {
             const double factor = 1./sin_xi[n];
             for( int d=0; d<D; d++ ) Q[d] = factor * ( m_X[n*D+d] - theta[n]*x[d] );
-            
+
             omega   = Ki_v[n] * dzeta[n]/(radius*radius);
             dalpha  = omega*theta[n]*factor;
             alpha   += dalpha;
@@ -441,7 +438,7 @@ void ConcentricInterpolation::Hessian( double * hess )
                                 +   (mu_bar - alpha) * x[d]*x[d2];
         }
     }
-    
+
     // symmetrize
     for(int d=0; d<D; d++)
         for(int d2=0; d2<d; d2++)
@@ -451,7 +448,7 @@ void ConcentricInterpolation::Hessian( double * hess )
 void ConcentricInterpolation::HessianFDM( double * hess, const double dx )
 {
     assert_msg( dx > 0, "ERROR in ConcentricInterpolation::HessianFDM: perturbation parameter must be positiv\n");
-    
+
     for(int dd=0;dd<D*D; dd++) hess[dd] = 0.;
     // compute Hessian via finite difference method
     double x_new[D], x0[D], g0[D];
@@ -492,7 +489,7 @@ void ConcentricInterpolation::InitializeKernelMethod( )
             tmp_alpha  = safeAcos( VecVecMul( m_X + n*D, m_X + n2*D, D ) );
             if ( sym )
                     m_K[n*N+n2]  = exp(-gamma*tmp_alpha*tmp_alpha)  +  exp(-gamma*(PI-tmp_alpha)*(PI-tmp_alpha));
-            else  
+            else
                     m_K[n*N+n2]  = exp(-gamma*tmp_alpha*tmp_alpha);
             m_K[n2*N+n] = m_K[n*N+n2];
         }
@@ -551,7 +548,7 @@ void ConcentricInterpolation::RecomputeKernelMatrix()
 
     // store LDL factorization of kernel matrix
     Factorize( m_K, m_Kf, w_i, N );
-    
+
 
 }
 /* *************************************************************************************** */
