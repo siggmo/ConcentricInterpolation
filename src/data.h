@@ -5,8 +5,8 @@
  *  COPYRIGHT NOTES
  *
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * Copyright (C) 2018-2019 by Felix Fritzen (fritzen@mechbau.uni-stuttgart.de)
+ *                         and Oliver Kunc (kunc@mechbau.uni-stuttgart.de
  * All rights reserved.
  *
  * This source code is licensed under the BSD 3-Clause License found in the
@@ -18,9 +18,9 @@
  *                                     sets on spheres and their application in
  *                                     mesh-free interpolation and
  *                                     differentiation'
- *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
- *     DOI   ...
- *     URL   dx.doi.org/...
+ *     Advances in Computational Mathematics, Number/Volume, p. XX-YY, 2019
+ *     DOI   10.1007/s10444-019-09726-5
+ *     URL   dx.doi.org/10.1007/s10444-019-09726-5
  *
  *  The latest version of this software can be obtained through
  *  https://github.com/EMMA-Group/ConcentricInterpolation
@@ -31,103 +31,141 @@
 
 using namespace UTILITY;
 
-/*! \brief Container class for general data
+/*! \brief Container for General Data. "General Data" means possibly irregular
+ * coordinates together with their corresponding function values.
  *
- * This class represents data objects \cD containing coordinates, function values,
- * [optional] gradient values and [optional] Hessians
+ * Usage: for evaluation of Concentric Interpolation, error computation, ...
  *
- * They can be used as inputs to:
+ * The difference to ConcentricData is that, here, the coordinates are not assumed to be concentric. Also, their format is
+ * absolute, meaning that they are taken as-is, in contrast to the amplitude-direction-split within ConcentricData.
  *
- * \see \InterpolateOnSet
- * \see \TestOnSet
- * \see \OptimizeGamma
+ * \todo investigate suitability of certain container classes as possible substitutes for the low-level pointer objects in
+ * order to maximize user-friendliness.
  */
-class Data{
-public:
-    Data();                             //!< default constructor, initializing nullpointers and D=P=-1
-    Data(const int a_D, const int a_P); //!< constructor that allocates memory for all pointers
-    Data(Data& dat, const bool function_data=false);    //!< copy constructor, always copying coordinates, conditionally copying function data. always allocates memory for all pointers, such that all pointers are ready for use
-    ~Data();                            //!< destructor that also frees the memory that was allocated for the pointers
-    const int D;          //!< dimension of the coordinates (meant to be const because coordinates and funciton data objects are not designed to be resizable)
-    const int P;          //!< number of points (meant to be const because coordinates and funciton data objects are not designed to be resizable)
-
-    // NOTE: in the following we define safe access functions that check the indices for compatibility.
-    // this is useful especially during experimental stage, but is inefficient. for maximum efficiency,
-    // one could declare the pointers public and operate directly on them
-    inline double& SafeAccess_coord(const int p, const int d) {
-        assert_msg(p<P && d<D, "ERROR in Data access: out of bound\n"); return coordinates[p][d];}
-    inline double* SafeAccess_coord(const int p) {
-        assert_msg(p<P       , "ERROR in Data access: out of bound\n"); return coordinates[p];}
-    inline double& SafeAccess_values(const int p) {
-        assert_msg(p<P,        "ERROR in Data access: out of bound\n"); return values[p];}
-    inline double& SafeAccess_gradients(const int p, const int d) {
-        assert_msg(p<P && d<D, "ERROR in Data access: out of bound\n"); return gradients[p][d];}
-    inline double* SafeAccess_gradients(const int p) {
-        assert_msg(p<P       , "ERROR in Data access: out of bound\n"); return gradients[p];}
-    inline double& SafeAccess_hessians(const int p, const int component) {
-        assert_msg(p<P && component<D*D, "ERROR in Data access: out of bound\n"); return hessians[p][component];}
-    inline double* SafeAccess_hessians(const int p) {
-        assert_msg(p<P       , "ERROR in Data access: out of bound\n"); return hessians[p];}
-
+class GeneralData{
 private:
-    double **coordinates;   //!< P-by-D matrix containing the coordinates of the points
-    double * values;        //!< array of length P containing the function data values
-    double **gradients;     //!< P-by-D matrix containing the funciton data gradients
-    double **hessians;      //!< P-by-D*D matrix containing the function data Hessians in symmetric notation
-    void initialize();      //!< allocates memory to the pointers
+    double**    Coords;     //!< \p N_pts -by-\p D_inp matrix containing the coordinates corresponding to \p Values
+    double**    Values;     //!< \p N_pts -by-\p D_val matrix containing the function values corresponding to \p Coords
+    int         D_inp;      //!< dimension of the interpolation's input artuments
+    int         D_val;      //!< number of scalar values that are interpolated simultaneously
+    int         N_pts;      //!< number of data points, i.e. number of coordinates and of values
+    bool        initialized;//!< true if memory has been allocated
+public:
+    //! Constructor initializing nullpointers and zero sizes \p D_inp, \p D_val, \p N_pts.
+    GeneralData();
+    //! Constructor allocating memory for coordinates and values.
+    GeneralData(
+        const int a_D_inp,
+        const int a_D_val,
+        const int a_N_pts
+        )
+    { initialized = false, Resize(a_D_inp, a_D_val, a_N_pts); }
+
+    ~GeneralData(){ Free(); }                  //!< destructor that also frees the memory that was allocated for the pointers
+
+    inline int  GetD_inp() const { return D_inp; }
+    inline int  GetD_val() const { return D_val; }
+    inline int  GetN_pts() const        { return N_pts; }
+    inline bool IsInitialized() const { return initialized; }
+
+    void Free();                        //!< frees memory and sets nullpointers
+    void Resize(
+        const int a_D_inp,
+        const int a_D_val,
+        const int a_N_pts
+         );
+
+    inline const double& GetCoord(const int n_point, const int d_inp) const { return Coords[n_point][d_inp]; }  //!< read-only access to single coordinate component of point \p n_point
+    inline const double& GetValue(const int n_point, const int d_val) const { return Values[n_point][d_val]; }  //!< read-only access to single value at point \p n_point
+    inline const double * GetCoords(const int n_point)    const { return Coords[n_point]; } //!< read-only access to coordinates of point \p n_point
+    inline const double * GetValues(const int n_point)    const { return Values[n_point]; } //!< read-only access to values at point \p n_point
+
+    inline double& SetCoord(const int n_point, const int d_inp) { return Coords[n_point][d_inp]; }    //!< write access to coordinates of point \p n_point
+    inline double& SetValue(const int n_point, const int d_val) { return Values[n_point][d_val]; }    //!< write access to values at point \p n_point
+    inline double* SetCoords(const int n_point)   { return Coords[n_point]; }   //!< write access to coordinates of point \p n_point
+    inline double* SetValues(const int n_point)   { return Values[n_point]; }   //!< write access to values at point \p n_point
 };
 
-/*! \brief Container class for training data
- *
- * Training data differs from general data in that it
- *   - only stores directions and radii instead of point coordinates
- *   - only stores the radial derivatives instead of gradients
- *   - does not store Hessians
- *
- * It is assumed that there is one single set of radii for all directions.
- *
- * In the paper, this is referred to as "training data" but, for the sake of readability.
- *
- * This can be used as inputs to:
- *
- * \see \AssembleInterpolation
- */
-class DataTraining{
-public:
-    DataTraining();                                             //!< default constructor, initializing nullpointers and negative constants
-    DataTraining(const int a_D, const int a_N, const int a_R);  //!< constructor that allocates memory for all pointers
-    DataTraining(DataTraining& dat, bool function_data);        //!< copy constructor, always copying coordinates, conditionally copying function data. always allocates memory for all pointers, such that all pointers are ready for use
-    ~DataTraining();                                            //!< destructor that also frees the memory that was allocated for the pointers
-    const int D;          //!< dimension of the coordinates (meant to be const because coordinates and funciton data objects are not designed to be resizable)
-    const int N;          //!< number of directions
-    const int R;          //!< number of radii
 
-    // NOTE: in the following we define safe access functions that check the indices for compatibility.
-    // this is useful especially during experimental stage, but is inefficient. for maximum efficiency,
-    // one could declare the pointers public and operate directly on them
-    inline double& SafeAccess_dir(      const int n, const int d) {
-        assert_msg(n<N && d<D, "ERROR in DataTraining access: out of bound\n"); return directions[n][d];}
-    inline double* SafeAccess_dir(const int n) {
-        assert_msg(n<N       , "ERROR in DataTraining access: out of bound\n"); return directions[n];}
-    inline double& SafeAccess_values(   const int n, const int r) {
-        assert_msg(n<N && r<R, "ERROR in DataTraining access: out of bound\n"); return values[n][r];}
-    inline double* SafeAccess_values(const int n) {
-        assert_msg(n<N,        "ERROR in DataTraining access: out of bound\n"); return values[n];}
-    inline double& SafeAccess_radderiv( const int n, const int r) {
-        assert_msg(n<N && r<R, "ERROR in DataTraining access: out of bound\n"); return radialderiv[n][r];}
-    inline double* SafeAccess_radderiv(const int n) {
-        assert_msg(n<N       , "ERROR in DataTraining access: out of bound\n"); return radialderiv[n];}
-    inline double*     Access_radii() {
-                                                                                return radii;}
-    inline double& SafeAccess_radii(const int r) {
-        assert_msg(r<R       , "ERROR in DataTraining access: out of bound\n"); return radii[r];}
 
-private:
-    double **directions;    //!< N-by-D matrix containing the unit direction vectors
-    double **values;        //!< N-by-R matrix containing the function data values at each radius along each direction
-    double **radialderiv;   //!< N-by-R matrix containing the radial derivatives at each radius along each direction
-    double * radii;         //!< vector of length R containing the radii
-    void initialize();      //!< allocates memory to the pointers
-};
 
-#endif
+
+
+
+
+
+
+
+
+/*! \brief Container for Concentric Data. "Concentric Data" means directions, amplitudes, and the corresponding function values.
+*
+* Strictly speaking, the data points may be positioned irregularly. No check of
+* "concentricity" or whatsoever is performed. But for ConcentricInterpolation,
+* it is assumed that the data is indeed concentric.
+*
+* Usage: for setup of ConcentricInterpolation.
+*
+* The difference to GeneralData is that, here, the coordinates are given in the direction-amplitude-split notation. This is essential
+* for the setup of Concentric Interpolation.
+*/
+    class ConcentricData{
+    private:
+        double**    Directions; //!< \p N_dir -by-\p D_inp matrix containing the coordinates corresponding to \p Values
+        double*     Radii;      //!< \p N_rad -sized array containing the radii of the support points \attention must contain zero as first entry
+        double***   Values;     //!< \p N_dir -by-\p N_rad -by-\p D_val array: access a scalar function value at a radius along a direction by <tt>Values[n_dir][n_rad][d_val]</tt>
+        int         D_inp;   //!< dimension of the interpolation's input artuments
+        int         D_val;   //!< number of scalar values that are interpolated simultaneously
+        int         N_dir;          //!< number of directions
+        int         N_rad;          //!< number of radii
+        bool        initialized;//!< true if memory has been allocated
+    public:
+        //! Constructor initializing nullpointers and zero sizes \p D_inp, \p D_val, \p N_dir, \p N_rad.
+        ConcentricData();
+        //! Constructor allocating memory for coordinates and values.
+        ConcentricData(
+            const int a_DimDirections,
+            const int a_D_val,
+            const int a_N_dir,
+            const int a_N_rad
+            )
+        { initialized = false, Resize(a_DimDirections, a_D_val, a_N_dir, a_N_rad); }
+        //! Constructor allocating memory and filling that memory with data from textfiles
+        ConcentricData(
+            char * a_FilenameSupportDirections, //!< name of file containing directions as rows
+            char * a_FilenameSupportRadii,      //!< name of file containing radii in one row
+            char * a_FilenameSupportValues,     //!< name of file containing the function values in the following format: one row per direction. in each row, there are \p D_val many entries for the first radius, then \p D_val many entries for the second radius, and so on.
+            const int a_D_val = 1               //!< number of values per support point
+        );
+
+        ~ConcentricData(){ Free(); }                  //!< frees memory and sets nullpointers
+
+        inline int  GetD_inp() const  { return D_inp; }
+        inline int  GetD_val() const  { return D_val; }
+        inline int  GetN_dir() const  { return N_dir; }
+        inline int  GetN_rad() const  { return N_rad; }
+        inline bool IsInitialized() const { return initialized; }
+
+        void Free();
+        void Resize(
+            const int a_D_inp,
+            const int a_D_val,
+            const int a_N_dir,
+            const int a_N_rad
+            );
+
+        inline const double& GetDirection(const int n, const int d_inp) const   { return Directions[n][d_inp]; }//!< read-only access to single direction component
+        inline const double * const * GetDirections() const                     { return Directions; }          //!< read-only access to all directions
+        inline const double& GetRadius(const int r) const                       { return Radii[r]; }            //!< read-only access to <tt>r</tt>-th radius
+        inline const double * GetRadii() const                                  { return Radii; }               //!< read-only access to all radii
+        inline const double& GetValue(const int n, const int r, const int d_val) const { return Values[n][r][d_val]; }  //!< read-only access to single value component
+        inline const double * const * const * GetValues() const                 { return Values; }              //!< read-only access to all values
+
+        inline double& SetDirection(const int n, const int d_inp)               { return Directions[n][d_inp]; }//!< write access to single direction component
+        inline double ** SetDirections()                                        { return Directions; }          //!< write access to all directions
+        inline double& SetRadius(const int r)                                   { return Radii[r]; }            //!< write access to <tt>r</tt>-th radius
+        inline double * SetRadii()                                              { return Radii; }               //!< write access to all radii
+        inline double& SetValue(const int n, const int r, const int d_val)      { return Values[n][r][d_val]; } //!< write access to single value component
+        inline double *** SetValues()                                           { return Values; }              //!< write access to all values
+
+    };
+    #endif

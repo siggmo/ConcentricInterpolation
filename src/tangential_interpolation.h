@@ -35,35 +35,35 @@
 #include <util.h>
 #include <cblas.h>
 
+using namespace UTILITY;
+
 class TangentialInterpolation;
 
-/** Tangential Interpolation is the classical interpolation on spheres by means of spherical basis functions.
+/** \brief This is one of the two main ingredients for ConcentricInterpolation, besides RadialInterpolation.
+ *
+ * Tangential Interpolation is the classical interpolation on spheres by means of spherical basis functions.
  * The class TangentialInterpolation provides all functionalities required for the setup and conduction of
- * such a spherical interpolation. The main function is Weights, which returns \f$ \underline{\underline{K}}^{-1}\underline{\zeta} \f$,
- * where \f$ \underline{\underline{K}} \f$ is the kernel matrix and \f$ \underline{\zeta} \f$ is the vector
- * of kernel values.
+ * such a spherical interpolation. The main function is KernelVector, which returns \f$ \underline{k}(\mathbf{n}) \f$,
+ * the vector of kernel values from equation (CI) of the article.
  *
  * At the moment, the Gaussian kernel \f$ k_i(\underline{N})=\exp(-\gamma\mathrm{acos}(\underline{N}\cdot\underline{N_i})^2) \f$ is employed,
- * but the user is free to implement the kernel of their choice. The spherical supporting points \f$ \{\underline{N_i}\}_{i=1,\dots,N} \subset \mathbf{R}^D \f$
- * are also called \e directions.
- *
- * For Concentric Interpolation, this is used in combination with RadialInterpolation.
+ * but the user is free to implement the kernel of their choice. The spherical supporting points \f$ \{\underline{N_i}\}_{i=1,\dots,N_{\rm dir}^{\rm supp}} \subset \mathbf{S}^{D_{\rm inp}-1} \f$
+ * are also called \e directions (in \f$ \mathbf{R}^{D_{\rm inp}}\f$).
  *
  * To get started, call Setup().
  *
  * \see RadialInterpolation
- * \see ConentricInterpolation
+ * \see ConcentricInterpolation
  *
  */
 
 class TangentialInterpolation {
 private:
-
     /*! \brief (Re-)Computes the kernel matrix and its inverse
      *
      * Requires prior call to Allocate().
      *
-     * This is automatically called during Weights(), if it has not been called
+     * This is automatically called during KernelVector(), if it has not been called
      * before or if any of the following functions was executed since the last
      * time:
      *  - Allocate()
@@ -71,7 +71,7 @@ private:
      *  - SetGamma()
      *  - SetLambda()
      *
-     * TODO
+     * \todo complete documentation of TangentialInterpolation
      *
      * */
     virtual void    ComputeKernelMatrix( );
@@ -80,9 +80,9 @@ protected:
 
     bool        sym;                //!< exploit point symmetry (only one ray of data points must be provided)
     bool        init;               //!< initialization flag
-    int         N_alloc;            //!< dimension of the pre-allocated memory
-    int         N;                  //!< number of \e actually provided directions, i.e. support points of the spherical basis functions
-    int         D;                  //!< dimension of the Euclidean space in which the directions are defined
+    int         N_dir_alloc;        //!< dimension of the pre-allocated memory
+    int         N_dir_supp;         //!< number of \e actually provided directions, i.e. support points of the spherical basis functions
+    int         D_inp;              //!< dimension of the Euclidean space in which the directions are defined
     double      gamma;              //!< kernel width parameter of the Gaussian kernel function
     double      lambda;             //!< regression parameter: controls condition number of kernel matrix. usually not needed.
 
@@ -96,7 +96,7 @@ protected:
     // matrix like 2D arrays (in terms of 1D row_major arrays). these are prefixed with "m_" to emphasize their multidimensional nature.
     double      *m_K,               //!< dense kernel matrix
                 *m_Kf,              //!< the LDL factorization of the kernel matrix. used for solving systems of the form K * Ki_a = a for Ki_a
-                *m_X;               //!< training directions, i.e. supporting points on the sphere (pre-allocated with size N_alloc)
+                *m_X;               //!< training directions, i.e. supporting points on the sphere (pre-allocated with size N_dir_alloc)
 
     static const double small;
     static const double theta_max;
@@ -105,8 +105,9 @@ protected:
 
 public:
 
-    /*! Default constructur, sets
-     *  - TODO
+    /*! Default constructur
+     *
+     *  \todo comment default constructor of TangentialInterpolation
      */
     TangentialInterpolation();
 
@@ -116,49 +117,16 @@ public:
     void    Free(); //!< free allocated memory \see ~ConcentricInterpolation()
 
     //! calls Allocate(), AddDirection() and SetGamma() in the correct order. SetGamma() may also be called afterwards, the argument \p gamma is optional. SetLambda() is usually not required, but may also be called afterwards.
-    void Setup( const int       a_N,        //!< number of \e desired directions, i.e. support points of the spherical basis functions \see TangentialInterpolation::N
-                const int       a_D,        //!< dimension of Euclidean space, i.e. the directions are \p N points on \f$ \mathbf{S}^{D-1} \f$
+    void Setup( const int       a_N_dir_supp,        //!< number of \e desired directions, i.e. support points of the spherical basis functions \see TangentialInterpolation::N_dir_supp
+                const int       a_D_inp,        //!< dimension of Euclidean space, i.e. the directions are \p N_dir_supp points on \f$ \mathbf{S}^{D_{\rm inp}-1} \f$
                 const double * const * a_directions,   //!< d-th component of n-th direction --> <tt> a_directions[n][d] </tt>
                 const bool      a_sym=false,//!< [\e optional] symmetry flag, defaluts to false meaning no symmetry will be considered. See SetSymmetric().
                 const double    gamma=0.    //!< [\e optional] kernel width parameter, defaults to zero meaning it has to be set later. Calls SetGamma().
          );
 
-    /*! \brief pre-allocate memory for (up to) \c a_N_alloc directions in R^\c a_D */
+    /*! \brief pre-allocate memory for (up to) \c a_N_alloc directions in R^\c a_D_inp */
     void    Allocate( int a_N_alloc,    /*!< [in] maximum admissible number of directions used for input data */
-                      const int a_D     /*!< [in] dimension of the Euclidean space in which the directions are defined */ );
-
-     /*! \brief Compute weights for the direction of the vector \c X (not necessarily normalized)
-     *
-     * If the vector is zero, then the unit vector e_1 is returned.
-     * Otherwise, the (symmetric) kernel function is evaluated and
-     * K^-1 * zeta is returned in \c W.
-     *
-     * optionally, zeta, dzeta and ddzeta can be output
-     *
-     * */
-    void Weights(
-        double * a_W,       /*!< [out] vector \c W of weights */
-        const int n_dirs,   /*!< [in] number of directions in a_x */
-        const double * a_x, /*!< [in] n_dirs x dim matrix of directions (row-wise) \c X */
-        double * a_zeta  =0,/*!< [out, optional] vector \c W of zeta values */
-        double * a_dzeta =0,/*!< [out, optional] vector \c W of dzeta values */
-        double * a_ddzeta=0 /*!< [out, optional] vector \c W of ddzeta values */
-                );
-
-//     void Weights(
-//         int    n_vec,       /*!< [in]  number of input vector */
-//         double * a_W,       /*!< [out] (n x n_vec) matrix \c W of weights */
-//         const double * a_x, /*!< [in]  (n_vec x D) matrix containing directions as /direction \c X */
-//         double * w_d        /* sufficiently large working array of doubles */ );
-
-    //! short-cut to Weights( ... ) with n_dirs=1 [see above]
-    void operator() (
-        double * a_W,       /*!< [out] vector \c W of weights */
-        const double * a_x, /*!< [in] single direction \c X */
-        double * a_zeta  =0,/*!< [out, optional] vector \c W of zeta values */
-        double * a_dzeta =0,/*!< [out, optional] vector \c W of dzeta values */
-        double * a_ddzeta=0 /*!< [out, optional] vector \c W of ddzeta values */
-                ) { Weights( a_W, 1, a_x, a_zeta, a_dzeta, a_ddzeta ); }
+                      const int a_D_inp     /*!< [in] dimension of the Euclidean space in which the directions are defined */ );
 
      /*! \brief Compute and return the kernel vector \f$\underline{k}(\mathbf{n})\f$, see equation (CI) of the paper.
      *
@@ -167,15 +135,15 @@ public:
      *
      * This function does \e not depend on or use the kernel matrix \f$\underline{\underline{K}}\f$ in any way.
      *
-     * \attention If an evaluation direction (i.e. row of \c X) has very small norm (e.g. numerical zero), then the evaluation direction is set to \f$ [1, 0, \ldots , 0] \in\mathbf{R}^N \f$
+     * \attention If an evaluation direction (i.e. row of \c X) has very small norm (e.g. numerical zero), then the evaluation direction is set to \f$ [1, 0, \ldots , 0] \in\mathbf{R}^{D_{\rm inp}} \f$
      *
      * */
     void KernelVector(
-        const int n_dirs_eval,  /*!< [in] number of evaluation directions in a_x */
-        const double * a_x,     /*!< [in] row-major pseudo-matrix (\p n_dirs x \p D) of evaluation directions \c X */
-        double * a_zeta,        /*!< [out] row-major pseudo-matrix (\p n_dirs x \p N) containing the \f$ \underline{\zeta} \f$ vectors */
-        double * a_dzeta =0,    /*!< [out, optional] TODO \todo */
-        double * a_ddzeta=0     /*!< [out, optional] TODO \todo  */
+        const int n_dirs_eval,  /*!< [in] number of evaluation directions \p n_dirs */
+        const double * a_x,     /*!< [in] row-major pseudo-matrix (\p n_dirs x \p D_inp) of evaluation directions \c X */
+        double * a_zeta,        /*!< [out] row-major pseudo-matrix (\p n_dirs x \p N_dir_supp) containing the \f$ \underline{\zeta} \f$ vectors */
+        double * a_dzeta =0,    /*!< [out, optional] \todo implement \f$ {\rm d}\underline{\zeta} \f$*/
+        double * a_ddzeta=0     /*!< [out, optional] \todo implement \f$ {\rm d}^2\underline{\zeta} \f$ */
                 );
 
     /*! \brief Add a new direction
@@ -184,7 +152,7 @@ public:
      * Otherwise, the kernel matrix becomes singular and the program will fail without error handling.
      * */
     void    AddDirection(
-        const double * a_X      //!< [in] (unit) vector of dimension D; direction along which the data is provided [normalization is carried out internally]
+        const double * a_X      //!< [in] (unit) vector of dimension D_inp; direction along which the data is provided [normalization is carried out internally]
     );
 
     /*! \brief Returns the the symmetry flag.
@@ -203,16 +171,18 @@ public:
      * interpolation (and of the gradients) involves only few additional operations.
      *
      * \attention
-     *  - if the symmetric interpolation should have \f$ N \f$ supporting points on \f$ \mathbf{S}^{D-1} \f$, then
-     * <em> only \f$ N/2 \f$ points must be provided</em>
-     *  - the other \f$ N/2 \f$ points are assumed to be the \e antipodes of the provided ones, and are considered implicitly
+     *  - if the symmetric interpolation should have \f$ N_{\rm dir}^{\rm supp} \f$ supporting points on \f$ \mathbf{S}^{D_{\rm inp}-1} \f$, then
+     * <em> only \f$ N_{\rm dir}^{\rm supp}/2 \f$ points must be provided</em>
+     *  - the other \f$ N_{\rm dir}^{\rm supp}/2 \f$ points are assumed to be the \e antipodes of the provided ones, and are considered implicitly
      *  - <em>DO NOT PROVIDE THE ANTIPODES</em>
-     *  - \f$ N \f$ must be even
+     *  - \f$ N_{\rm dir}^{\rm supp} \f$ must be even
      *
      * \see GetSymmetric
      * \see AddDirection
     */
-    void SetSymmetric( const bool a_sym );
+    void SetSymmetric(  const bool a_sym,
+                        const bool a_recompute_kernel_matrix = false    /*!< [in] call ComputeKernelMatrix() now? */
+    );
 
     /*! \brief Returns the kernel width parameter.
      *
@@ -232,7 +202,10 @@ public:
      * \see GetGamma
      *
      * */
-    void SetGamma( const double a_gamma /*!< [in] new kernel parameter */ );
+    void SetGamma(  const double a_gamma,                           /*!< [in] new kernel parameter */
+                    const bool a_recompute_kernel_matrix = false,   /*!< [in] call ComputeKernelMatrix() now? */
+                    const bool a_quiet = false                      /*!< [in] if true, then don't print notification */
+    );
 
     /*! \brief Returns the regression parameter.
      *
@@ -250,29 +223,46 @@ public:
      *
      * \see GetLambda
      */
-    void SetLambda( const double a_lambda );
+    void SetLambda( const double a_lambda,
+                    const bool a_recompute_kernel_matrix = false    /*!< [in] call ComputeKernelMatrix() now? */
+    );
 
-    /*! \brief Returns number of directions N. */
-    inline int GetN( ) const
+    /*! \brief Returns number of directions \p N_dir_supp. */
+    inline int GetN_dir_supp( ) const
     {
-        return N;
+        return N_dir_supp;
+    }
+
+    /*! \brief Returns number of spatial dimensions \p D_inp. */
+    inline int GetD_inp( ) const
+    {
+        return D_inp;
+    }
+
+    /*! \brief Same as GetD_inp(). */
+    inline int GetDimCoords( ) const
+    {
+        return D_inp;
     }
 
     /*! \brief return kernel matrix \f$ \underline{\underline{K}} \f$ */
     inline const double * const GetKernelMatrix() const
     {
+        assert_msg( init, "ERROR: initialize TangentialInterpolation before calling GetKernelMatrix. Forgot to call ComputeKernelMatrix?\n");
         return m_K;
     }
 
     /*! \brief return LDL factorization of kernel matrix \f$ \underline{\underline{K}} \f$ */
     inline const double * GetKernelMatrixFactorization() const
     {
+        assert_msg( init, "ERROR: initialize TangentialInterpolation before calling GetKernelMatrixFactorization. Forgot to call ComputeKernelMatrix?\n");
         return m_Kf;
     }
 
     /*! \brief return permutation indices of the factorization TangentialInterpolation::w_i */
     inline const int * GetPermutation() const
     {
+        assert_msg( init, "ERROR: initialize TangentialInterpolation before calling GetPermutation. Forgot to call ComputeKernelMatrix?\n");
         return w_i;
     }
 
@@ -284,37 +274,5 @@ public:
 
 }; /* class TangentialInterpolation */
 
-
-// class TangentialInterpolationPseudoSym : public TangentialInterpolation {
-// private:
-//     double *m_Kdiff, *m_Kdiff_f;    //!< difference kernel matrix and its factorization (LDL)
-//     int         * w_diff_i;         //!< integer working array for linear solver (IPIV in LAPACK)
-//     double      * w_s;              //!< zeta_star and symmtric weights
-//     void zero_pointers();
-// public:
-//     TangentialInterpolationPseudoSym();
-//     ~TangentialInterpolationPseudoSym();
-//     void Free();
-//     void Allocate( int a_N_alloc, const int a_D );
-//
-//     void ComputeKernelMatrix();
-//
-//     void Weights(
-//         double * a_W,       /*!< [out] vector \c W of weights */
-//         const int n_dirs,   /*!< [in] number of vectors contained in \c X */
-//         const double * a_x, /*!< [in] vector(s) [row-matrix of size n_dirs x D] \c X */
-//         double * a_zeta,    /*!< [out, optional] vector \c W of zeta values (if not needed set to NULL) */
-//         double * a_dzeta,   /*!< [out, optional] vector \c W of dzeta values (if not needed set to NULL) */
-//         double * a_ddzeta   /*!< [out, optional] vector \c W of ddzeta values (if not needed set to NULL) */
-//                 );
-// //    void Weights(
-// //         int    n_vec,       /*!< [in]  number of input vector */
-// //         double * a_W,       /*!< [out] (n x n_vec) matrix \c W of weights */
-// //         const double * a_x, /*!< [in]  (n_vec x D) matrix containing directions as /direction \c X */
-// //         double * w_d        /* sufficiently large working array of doubles */ );
-//
-//    const double * const SymWeights() const { return w_s; }
-//
-// };
 
 #endif /* _TANGENTIAL_INTERPOLATION_H_ */

@@ -5,8 +5,8 @@
  *  COPYRIGHT NOTES
  *
  *  ConcentricInterpolation
-  *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * Copyright (C) 2018-2019 by Felix Fritzen (fritzen@mechbau.uni-stuttgart.de)
+ *                         and Oliver Kunc (kunc@mechbau.uni-stuttgart.de
  * All rights reserved.
  *
  * This source code is licensed under the BSD 3-Clause License found in the
@@ -18,9 +18,9 @@
  *                                     sets on spheres and their application in
  *                                     mesh-free interpolation and
  *                                     differentiation'
- *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
- *     DOI   ...
- *     URL   dx.doi.org/...
+ *     Advances in Computational Mathematics, Number/Volume, p. XX-YY, 2019
+ *     DOI   10.1007/s10444-019-09726-5
+ *     URL   dx.doi.org/10.1007/s10444-019-09726-5
  *
  *  The latest version of this software can be obtained through
  *  https://github.com/EMMA-Group/ConcentricInterpolation
@@ -44,6 +44,7 @@
 
 #define DEFAULT_ERROR_CODE 10
 
+//! Handy utility functions.
 namespace UTILITY {
 
 inline int IDX2( int i, int j, int n ) { return( i*n+j ); }
@@ -68,21 +69,30 @@ void        assert_msg(const bool condition, const char *str, const bool quit=tr
 
 /* *************************************************************************************** */
 /* memory management */
-double *    alloc_array( const int N )  ; //!< allocate array of length \c N (N is the number of doubles to allocate memory for)
+double *    alloc_array( const size_t N )  ; //!< allocate array of length \c N (N is the number of doubles to allocate memory for)
 void        free_array( double ** )  ; //!< savely free previously allocated array
 
 //! \brief function for allocating pseudo 2-dimensional arrays. memory is filled with zeros.
 //! \details \see free_matrix
-double ** alloc_matrix( const int m, const int n );
+double ** alloc_matrix( const size_t m, const size_t n );
+
+//! \brief function for allocating pseudo 3-dimensional arrays. memory is filled with zeros.
+//! \details \see free_array3
+double *** alloc_array3( const size_t m, const size_t n, const size_t o );
 
 //! \brief function for freeing memory allocated by alloc_matrix
 //! \details \see alloc_matrix
 void free_matrix( double ** &A, const size_t  m /**< [in] first dimension of A */ );
+
+//! \brief function for freeing memory allocated by alloc_array3
+//! \details \see alloc_matrix
+void free_array3( double *** &A, const size_t  m,  /**< [in] first dimension of A */ const size_t n /**< [in] second dimension of A */ );
 /* *************************************************************************************** */
 double      norm( const double * a, const int dim )  ; //!< compute the \f$l^2\f$ vector norm of \c a in R^\c dim
 double      distance( const double * a, const double * b, const int dim )  ; //!< compute the \f$l^2\f$ vector distance of vector \c a and \c b
+void        scale( const double * vec1, const double val, double * vec2, const int dim );//!< scales \p vec1 by \p val and stores result to \p vec2. assumes both \p vec1 and \p vec2 are of length \p dim.
 
-// interface to LAPACKE and BLAS
+/* *************************************************************************************** */
 void        SetVector( double * a, const int N, const double a0 )  ; //!< initialize all components of a vector, i.e. \f$a_i=a_0/f$
 inline double VecVecMul( const double * a, const double * b, const int N ) //!< return inner product \f$a\cdot{}b\f$
 {
@@ -94,9 +104,7 @@ inline double VecVecMul( const double * a, const double * b, const int N ) //!< 
 
     return res;
 }
-/* *************************************************************************************** */
-double      MatVecMul( const double * A, const double * x, double * y, const int M, const int N, const bool T=false ); //!< on exit, \f$y_i=A_{ij}x_j\f$ or (if \c T==true) \f$y_j=A_{ij}x_i\f$
-
+void    MatVecMul( const double * A, const double * x, double * y, const int M, const int N, const bool T=false ); //!< on exit, \f$y_i=A_{ij}x_j\f$ or (if transposition flag \c T==true) \f$y_j=A_{ij}x_i\f$. For use in ConcentricInterpolation, transposition should always be true \see ConcentricInterpolation::Evaluate() and ConcentricInterpolation::Error()
 /* *************************************************************************************** */
 /* use LDL solver to compute the product of the inverse kernel matrix and a vector */
 //! stores LDL factorization of \c A to \c Af, and corresponding interchange indices to the integer array \c w_i. \c A and \c Af need to be of size \c N*\c N and the size of \c w_i should be at least the same size or bigger

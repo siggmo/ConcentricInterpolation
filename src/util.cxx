@@ -1,9 +1,11 @@
 #include <util.h>
 
 /*
+ *  COPYRIGHT NOTES
+ *
  *  ConcentricInterpolation
-  *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * Copyright (C) 2018-2019 by Felix Fritzen (fritzen@mechbau.uni-stuttgart.de)
+ *                         and Oliver Kunc (kunc@mechbau.uni-stuttgart.de
  * All rights reserved.
  *
  * This source code is licensed under the BSD 3-Clause License found in the
@@ -15,12 +17,12 @@
  *                                     sets on spheres and their application in
  *                                     mesh-free interpolation and
  *                                     differentiation'
- *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
- *     DOI   ...
- *     URL   dx.doi.org/...
+ *     Advances in Computational Mathematics, Number/Volume, p. XX-YY, 2019
+ *     DOI   10.1007/s10444-019-09726-5
+ *     URL   dx.doi.org/10.1007/s10444-019-09726-5
  *
- *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *
+ *  The latest version of this software can be obtained through
+ *  https://github.com/EMMA-Group/ConcentricInterpolation
  *
  */
 
@@ -72,7 +74,8 @@ char * UTILITY::ToNextWhitespace( char * in )
 double ** UTILITY::ReadMatrix( int *r, int *c, const char * fn, const int NMAX_LINES, const int NMAX_COL )
 {
     FILE * F = fopen(fn, "r");
-    assert_msg( F != 0, "ERROR opening file in ReadMatrix\n");
+    if( F == nullptr )
+        fprintf(stderr, "ERROR in ReadMatrix: couldn't open file '%s'\n", fn), exit(-1);
 
     char    line[8192], buffer[8192], *dummy;
     char    * c_str = 0;
@@ -139,7 +142,7 @@ double ** UTILITY::ReadMatrix( int *r, int *c, const char * fn, const int NMAX_L
         for(size_t icol=0; icol<ncol; icol++)
             matrix[irow][icol] = tmp_matrix[irow*ncol+icol];
 
-    delete [] tmp_matrix;
+    delete[] tmp_matrix;
     tmp_matrix = 0;
 
     fclose(F);
@@ -174,19 +177,20 @@ void UTILITY::assert_msg( const bool condition, const char * str, const bool qui
         exit( DEFAULT_ERROR_CODE );
 }
 /* *************************************************************************************** */
-double * UTILITY::alloc_array(const int N )
+double * UTILITY::alloc_array(const size_t N )
 {
     assert_msg( N>0, "ERROR: array must have positive dimension\n");
     double * a = 0;
     a = new double [N];
+    memset(a, 0, sizeof a);
     assert_msg( a != 0, "ERROR in alloc_array (NULL pointer returned)\n");
     return a;
 }
 /* *************************************************************************************** */
 void    UTILITY::free_array( double ** a )
 {
-    delete [] *a;
-    *a = 0;
+    delete[] *a;
+    *a = nullptr;
 }
 /* *************************************************************************************** */
 double      UTILITY::distance( const double * a, const double * b, const int dim )
@@ -211,6 +215,12 @@ double  UTILITY::norm( const double * a, const int dim )
     return sqrt(res);
 }
 /* *************************************************************************************** */
+void    UTILITY::scale( const double * vec1, const double val, double * vec2, const int dim )
+{
+    for(int i=0; i<dim; i++)
+        vec2[i] = vec1[i]/val;
+}
+/* *************************************************************************************** */
 void    UTILITY::SetVector( double * a, const int N, const double a0 )
 {
 
@@ -218,7 +228,7 @@ void    UTILITY::SetVector( double * a, const int N, const double a0 )
     for(int i=0;i<N;i++) a[i] = a0;
 }
 /* *************************************************************************************** */
-double      UTILITY::MatVecMul( const double * A, const double * x, double * y, const int M, const int N, const bool T )
+void    UTILITY::MatVecMul( const double * A, const double * x, double * y, const int M, const int N, const bool T )
 {
     if( T )
     {
@@ -281,33 +291,72 @@ double FastAcos::Eval(const double x )
     return ((data[i] * (alpha-0.5) - 2.*alpha* mid_data[i] ) *(alpha-1.0) + alpha*(alpha-0.5)*data[i+1])*2.;
 }
 /* *************************************************************************************** */
-double ** UTILITY::alloc_matrix( const int m, const int n )
+double ** UTILITY::alloc_matrix( const size_t m, const size_t n )
 {
     if( (m<=0) || (n<=0) )
     {
-        double ** A = 0;
+        double ** A = nullptr;
         return A;
     }
-    int i;
     double ** A = new double * [m];
     A[0] = new double [ size_t(m)*size_t(n) ];
     assert_msg( A[0] != 0 , "ERROR in double ** alloc_matrix() : out of memory error\n");
-
-    for(i=0;i<m;i++) A[i] = A[0] + i*n;
-
     memset(A[0], 0, sizeof(double)*size_t(m)*size_t(n)); /*set to zero*/
+
+    for(size_t i=0;i<m;i++)
+        A[i] = A[0] + i*n;
+
+    return A;
+}
+/* *************************************************************************************** */
+double *** UTILITY::alloc_array3( const size_t m, const size_t n, const size_t o )
+{
+    if( (m<=0) || (n<=0) || (o<=0) )
+    {
+        double *** A = nullptr;
+        return A;
+    }
+    double *** A = new double ** [m];
+    for(size_t i=0;i<m;i++)
+    {
+        A[i] = new double * [n];
+        if(i==0)
+        {
+            A[0][0] = new double [ size_t(m)*size_t(n)*size_t(o) ];
+            memset(A[0][0], 0, sizeof A[0][0]);
+            assert_msg( A[0] != 0 , "ERROR in double *** alloc_matrix() : out of memory error\n");
+            memset(A[0][0], 0, sizeof(double)*size_t(m)*size_t(n)*size_t(o)); /*set to zero*/
+        }
+        for(size_t j=0;j<n;j++)
+            A[i][j] = A[0][0] + i*n*o + j*o;
+    }
+
     return A;
 }
 /* *************************************************************************************** */
 void UTILITY::free_matrix( double ** &A, const size_t  m )
 {
-    assert_msg( ( A == 0 ) || ( m >= 0 ) ,"ERROR: Trying to free an array of negative or zero size in free_matrix(double **&, const size_t)\n");
+    assert_msg( ( A == nullptr ) || ( m >= 0 ) ,"ERROR: Trying to free an array of negative or zero size in free_matrix\n");
 
     if( m == 0 ) return;
     if( A != 0 ) {
-        for(size_t i=1;i<m;i++) A[i] = 0;
-        delete [] A[0]; A[0] = 0;
-        delete [] A;    A = 0;
+        for(size_t i=1;i<m;i++) A[i] = nullptr;
+        delete[] A[0]; A[0] = nullptr;
+        delete[] A;    A = nullptr;
+    }
+}
+/* *************************************************************************************** */
+void UTILITY::free_array3( double *** &A, const size_t  m, const size_t n )
+{
+    assert_msg( ( A == nullptr ) || ( m >= 0 && n >= 0 ) ,"ERROR: Trying to free an array of negative or zero size in free_array3\n");
+
+    if( m == 0 || n == 0 ) return;
+    if( A != 0 )
+    {
+        delete[] A[0][0];
+        for(size_t i=0;i<m;i++)
+            delete[] A[i];
+        delete[] A; A = nullptr;
     }
 }
 

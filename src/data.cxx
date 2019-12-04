@@ -1,8 +1,10 @@
 #include "data.h"
 /*
+ *  COPYRIGHT NOTES
+ *
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * Copyright (C) 2018-2019 by Felix Fritzen (fritzen@mechbau.uni-stuttgart.de)
+ *                         and Oliver Kunc (kunc@mechbau.uni-stuttgart.de
  * All rights reserved.
  *
  * This source code is licensed under the BSD 3-Clause License found in the
@@ -14,139 +16,133 @@
  *                                     sets on spheres and their application in
  *                                     mesh-free interpolation and
  *                                     differentiation'
- *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
- *     DOI   ...
- *     URL   dx.doi.org/...
+ *     Advances in Computational Mathematics, Number/Volume, p. XX-YY, 2019
+ *     DOI   10.1007/s10444-019-09726-5
+ *     URL   dx.doi.org/10.1007/s10444-019-09726-5
  *
- *  The latest version of this software can be obtained through https://github.com/EMMA-Group/ConcentricInterpolation
- *
+ *  The latest version of this software can be obtained through
+ *  https://github.com/EMMA-Group/ConcentricInterpolation
  *
  */
 
-Data::Data():
-D(-1),
-P(-1),
-coordinates(0),
-values(0),
-gradients(0),
-hessians(0)
-{}
-
-Data::Data(const int a_D, const int a_P):
-D(a_D),
-P(a_P)
+GeneralData::GeneralData()
 {
-    initialize();
+    initialized     = false;
+    Coords = Values = nullptr;
+    D_inp = D_val = N_pts= 0;
 }
 
-Data::Data(Data& dat, const bool function_data):
-D(dat.D),
-P(dat.P)
+void GeneralData::Resize(
+        const int a_D_inp,
+        const int a_D_val,
+        const int a_N_pts
+         )
 {
-    initialize();
+    Free();
 
-    // always copy point coordinates
-    for(int p=0; p<P; p++)
-        for(int d=0; d<D; d++)
-            coordinates[p][d] = dat.SafeAccess_coord(p,d);
-
-    // conditionally copy function data
-    if(function_data)
-        for(int p=0; p<P; p++)
-        {
-            values[p] = dat.values[p];
-            for(int d=0; d<D; d++)
-                gradients[p][d] = dat.SafeAccess_gradients(p,d);
-            for(int component=0; component<D*D; component++)
-                hessians[p][component] = dat.SafeAccess_hessians(p,component);
-        }
+    D_inp  = a_D_inp;
+    D_val  = a_D_val;
+    N_pts  = a_N_pts;
+    Coords = alloc_matrix(N_pts,D_inp);
+    Values = alloc_matrix(N_pts,D_val);
+    initialized = true;
 }
 
-Data::~Data()
+void GeneralData::Free()
 {
-    if(D<=0 && P<=0)
-    {}
-    else
-    {
-        free_matrix(coordinates, P);
-        delete [] values; values = 0;
-        free_matrix(gradients, P);
-        free_matrix(hessians, P);
-    }
-}
+    if(!initialized)
+        return;
 
-void Data::initialize()
-{
-    assert_msg(D>0 && P>0, "ERROR in Data constructor: D and P must be greater than zero\n");
-    coordinates = alloc_matrix(P,D);
-    values =      new double[P];
-    gradients =   alloc_matrix(P,D);
-    hessians =    alloc_matrix(P,D*D);
+    free_matrix(Coords, N_pts);
+    free_matrix(Values, N_pts);
+    D_inp = D_val = N_pts = 0;
+    initialized = false;
 }
 
 
-// /////////////////////////////////////////////////////////////////////////////////////////////
 
-DataTraining::DataTraining():
-D(-1),
-N(-1),
-R(-1),
-directions(0),
-values(0),
-radialderiv(0)
-{}
 
-DataTraining::DataTraining(const int a_D, const int a_N, const int a_R):
-D(a_D),
-N(a_N),
-R(a_R)
+
+
+
+
+
+ConcentricData::ConcentricData()
 {
-    initialize();
+    Directions  = nullptr;
+    Radii       = nullptr;
+    Values      = nullptr;
+    D_inp   = D_val = N_dir = N_rad = 0;
+    initialized = false;
 }
 
-DataTraining::DataTraining(DataTraining& dat, const bool function_data):
-D(dat.D),
-N(dat.N),
-R(dat.R)
+ConcentricData::ConcentricData(
+        char * a_FilenameSupportDirections,
+        char * a_FilenameSupportRadii,
+        char * a_FilenameSupportValues,
+        const int a_D_val
+                )
 {
-    initialize();
+    // allocate & read directions
+    Directions = ReadMatrix( &N_dir, &D_inp, a_FilenameSupportDirections );
 
-    // copy point directions
-    for(int n=0; n<N; n++)
-        for(int d=0; d<D; d++)
-            directions[n][d] = dat.SafeAccess_dir(n,d);
+    // allocate & read radii
+    int must_be_one = 0;
+    double ** temp = ReadMatrix( &must_be_one, &N_rad, a_FilenameSupportRadii );
+        assert_msg( must_be_one==1, "ERROR: radius file must contain radii in one row\n");
+        assert_msg( N_rad>=2, "ERROR: at least two radii must be provided\n");
+    Radii = new double[N_rad];
+    for(int r=0; r<N_rad; r++)
+        Radii[r] = temp[0][r];
+    free_matrix(temp, must_be_one);
 
-    // copy radii
-    for(int r=0; r<R; r++)
-        radii[r] = dat.SafeAccess_radii(r);
+    // allocate & read values
+    assert_msg( a_D_val>=1, "ERROR: D_val must be at least one\n");
+    D_val = a_D_val;
+    int must_be_N_dir = 0;
+    int must_be_D_val_times_N_rad = 0;
+    double ** temp2 = ReadMatrix( &must_be_N_dir, &must_be_D_val_times_N_rad, a_FilenameSupportValues );
+        assert_msg( must_be_N_dir==N_dir, "ERROR: values file must have same number of rows as directions file\n");
+        assert_msg( must_be_D_val_times_N_rad==(D_val*N_rad), "ERROR: values file's columns are not consistent with number of radii and dimensino of values\n");
+    Values = alloc_array3(N_dir, N_rad, D_val);
+    for(int n_dir=0; n_dir<N_dir; n_dir++)
+        for(int n_rad=0; n_rad<N_rad; n_rad++)
+            for(int d=0; d<D_val; d++)
+                Values[n_dir][n_rad][d] = temp2[n_dir][n_rad*D_val+d];
+    free_matrix(temp2, must_be_N_dir);
 
-    // conditionally copy function data
-    if(function_data)
-        for(int n=0; n<N; n++)
-            for(int r=0; r<R; r++)
-            {
-                values[n][r] = dat.SafeAccess_values(n,r);
-                radialderiv[n][r] = dat.SafeAccess_radderiv(n,r);
-            }
+    // ready to go
+    initialized = true;
 }
 
-DataTraining::~DataTraining()
+void ConcentricData::Free()
 {
-    if(N>0)
-    {
-        free_matrix(directions, N);
-        free_matrix(values, N);
-        free_matrix(radialderiv, N);
-    }
-    if(R>0)
-        delete [] radii, radii=0;
+    if(!initialized)
+        return;
+
+    free_matrix(Directions, N_dir);
+    delete [] Radii; Radii = 0;
+    free_array3(Values, N_dir, N_rad);
+
+    D_inp = D_val = N_dir = N_rad = 0;
+    initialized = false;
 }
 
-void DataTraining::initialize()
+void ConcentricData::Resize(
+        const int a_D_inp,
+        const int a_D_val,
+        const int a_N_dir,
+        const int a_N_rad
+         )
 {
-    assert_msg(D>0 && N>0 && R>0, "ERROR in DataTraining constructor: D, N, and R must be greater than zero\n");
-    directions  = alloc_matrix(N,D);
-    values      = alloc_matrix(N,R);
-    radialderiv = alloc_matrix(N,R);
-    radii       = new double[R];
+    Free();
+
+    D_inp       = a_D_inp;
+    D_val       = a_D_val;
+    N_dir       = a_N_dir;
+    N_rad       = a_N_rad;
+    Directions  = alloc_matrix(N_dir,D_inp);
+    Radii       = new double[N_rad];
+    Values      = alloc_array3(N_dir,N_rad,D_val);
+    initialized = true;
 }

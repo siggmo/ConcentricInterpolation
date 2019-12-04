@@ -1,7 +1,7 @@
 ### for debugging try:
-OPT=-O0 -g -std=c++11
+# OPT=-O0 -g -std=c++11
 ### for performance related builds use
-# OPT=-O6
+OPT=-O6 -std=c++11
 AR=ar
 CXX=g++
 INC=-I.
@@ -18,58 +18,33 @@ LIB=-L. -L /usr/lib/x86_64-linux-gnu/\
 #############################################################################################################
 #############################################################################################################
 
-default:	lib
+default:	clean lib
 
-lib:		RI TI util interpolation cubic quadratic data data_util dist_func obj_func
+lib:		CI RI TI data util
 	$(AR) r libconinter.a			\
-	        cubic_interpolant.o		\
 	        concentric_interpolation.o	\
-	        util.o				\
-	        data.o				\
-	        data_util.o			\
-	        distance_functions.o		\
-	        tangential_interpolation.o	\
 	        radial_interpolation.o		\
-	        objective_functions.o		\
-	        quadratic_interpolant.o
+	        tangential_interpolation.o	\
+	        data.o				\
+	        util.o
 
 clean:
 	rm -rf *.o
 
-distclean:
-	make clean
-	rm -rf *.a
-
-cubic:	cubic_interpolant.h cubic_interpolant.cxx
-	$(CXX) $(OPT) -c cubic_interpolant.cxx $(INC)
-
-quadratic:	quadratic_interpolant.h quadratic_interpolant.cxx
-	$(CXX) $(OPT) -c quadratic_interpolant.cxx $(INC)
-
-util:	util.h util.cxx
-	$(CXX) $(OPT) -c util.cxx $(INC)
-
-interpolation:	concentric_interpolation.h concentric_interpolation.cxx
+CI:	concentric_interpolation.h concentric_interpolation.cxx
 	$(CXX) $(OPT) -c concentric_interpolation.cxx $(INC)
-
-TI:	tangential_interpolation.h tangential_interpolation.cxx
-	$(CXX) $(OPT) -c tangential_interpolation.cxx $(INC)
 
 RI:	radial_interpolation.h radial_interpolation.cxx
 	$(CXX) $(OPT) -c radial_interpolation.cxx $(INC)
 
-
-#############################################################################################################
-#############################################################################################################
+TI:	tangential_interpolation.h tangential_interpolation.cxx
+	$(CXX) $(OPT) -c tangential_interpolation.cxx $(INC)
 
 data:
 	$(CXX) $(OPT) -c data.cxx $(INC)
 
-data_util:
-	$(CXX) $(OPT) -c data_util.cxx $(INC)
+util:	util.h util.cxx
+	$(CXX) $(OPT) -c util.cxx $(INC)
 
-dist_func:
-	$(CXX) $(OPT) -c distance_functions.cxx $(INC)
-
-obj_func:
-	$(CXX) $(OPT) -c objective_functions.cxx $(INC)
+#############################################################################################################
+#############################################################################################################

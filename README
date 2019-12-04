@@ -1,19 +1,20 @@
 ------------------------------
-Content of this file 
+Content of this file
 ------------------------------
 1) What's this
 2) How to use
-3) Bug reporting
-4) License information
+3) Code style and paradigm
+4) Bug reporting
+6) License information
 ------------------------------
 
 1)     WHAT'S THIS
 ==============================
-The Concentric Interpolation method efficiently interpolates scalar data
-in multi-dimensional spaces. It is based on a concentric placement of the
+The Concentric Interpolation method efficiently interpolates multi-dimensional
+data in multi-dimensional spaces. It is based on a concentric placement of the
 function samples, i.e. centered around the origin and placed along
 equidistributed directions at certain radii. This structure is exploited by
-means of a two-staged interpolation: first, a radial interpolation is performed, 
+means of a two-staged interpolation: first, a radial interpolation is performed,
 i.e. a one-dimensional interpolation along each direction by means of piecewise
 defined polynomial. Second, a tangential interpolation is performed using
 classical spherical basis functions. For more information, see the associated
@@ -22,12 +23,12 @@ research article:
 Authors: Oliver Kunc and Felix Fritzen
 Title  : Generation of energy-minimizing point sets on spheres and their
          application in mesh-free interpolation and differentiation
-Journal: ...
+Journal: Advances in Computational Mathematics
 Year   : ...
 Volume : ...
 Number : ...
-DOI    : ...
-URL    : ...
+DOI    : 10.1007/s10444-019-09726-5
+URL    : dx.doi.org/10.1007/s10444-019-09726-5
 
 2)     HOW TO USE
 ==============================
@@ -35,14 +36,14 @@ URL    : ...
 ==============================
        A C++ compiler (e.g. g++) and the GNU GSL library as well as an
        implementation of LAPACKE are required. (in Debian or Ubuntu systems, the
-       command "sudo apt-get install liblapacke liblapacke-dev libgsl-dev 
+       command "sudo apt install liblapacke liblapacke-dev libgsl-dev
        libgsl23 libgslcblas0" should suffice)
 
 2.2)   DOCUMENTATION
 ==============================
        See doxygen output in ./doxygen/html/index.html
        or in ./doxygen/latex/*.pdf for class documentation
-       (build using command: doxygen ConcentricInterpolation.doxy).
+       (build command: "doxygen ConcentricInterpolation.doxy").
        See inline comments for further details.
 
 2.3)   COMPILATION and EXAMPLE
@@ -50,25 +51,32 @@ URL    : ...
 2.3a)  For the LIBRARY, go to the "src" directory and run "make" on a terminal
        (adjust Makefile if required)
 2.3b)  For an executable EXAMPLE, change to the "examples" directory. Run "make"
-       on a terminal. Then change to "examples" directory, where the binary
-       "interpolation demo" is located. To see which arguments need to be
-       passed, run it without arguments. To run it with an exemplary set of
-       arguments, run the shell script "run_example_interpolation_demo.sh". The
-       outputs are written to the file "outputs_interpolation_demo.txt".
-       
-       You can provide your own function data by providing directions and values
-       as text files in the format of the arguments in
-       "run_example_interpolation_demo.sh".
-       
-       The best point to start getting into the code is "interpolation_demo.cxx"
+       on a terminal. Then change to "bin" directory, where the binary
+       "interpolation demo" is located, and run it.
 
 2.4)   HOW TO CITE
 ==============================
 When referring to this software, please cite the article mentioned above in
 Section 1) "WHAT'S THIS".
 
+3)  CODE STYLE AND PARADIGM
+==============================
+3a) Indentation by 4 spaces, no tabs.
+3b) Camel case function names, variable names less strict.
+3c) No trailing whitespaces.
+3e) Function arguments begin with "a_" in order to strictly separate from local
+    identifiers. Local identifiers do not begin with "a_".
+3e) Error handling not rigorous yet. Unclear where to go from here, depends on
+    yet unknown user requirements.
+3f) Working on low-level pointer objects: the user is required to assure that
+    memory bounds are respected. Setup functions and destructors take care of
+    the basic management, but access to components is unrestricted. Read or
+    write access is controlled via the respective Get... or Set... functions.
+3g) Const correctness: top-level pointers are not const, all lower levels should
+    be const. This is mostly but not 100% consistent atm.
+3h) For essential conditional checks in functions, use UTILITY::assert_msg()
 
-3) BUG REPORTING
+4) BUG REPORTING
 ==============================
 Please report bugs and suggestions to the administrators of the corresponding
 github repository:
@@ -78,6 +86,6 @@ or direcly e-mail
 or
         kunc@mechbau.uni-stuttgart.de
 
-4) LICENSE INFORMATION
+5) LICENSE INFORMATION
 ==============================
 See file LICENSE

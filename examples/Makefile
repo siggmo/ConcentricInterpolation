@@ -1,6 +1,6 @@
 # REQUIREMENTS
 # lapacke and GNU GSL must be installed (e.g. in ubuntu: "sudo apt-get install liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0" )
-INC=-I. -I ../src 
+INC=-I. -I ../src
 LIB=-L. -L ../src -L/usr/lib/x86_64-linux-gnu/\
 		-Wl,--start-group \
 		-llapacke			\
