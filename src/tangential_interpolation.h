@@ -35,8 +35,6 @@
 #include <util.h>
 #include <cblas.h>
 
-using namespace UTILITY;
-
 class TangentialInterpolation;
 
 /** \brief This is one of the two main ingredients for ConcentricInterpolation, besides RadialInterpolation.
@@ -248,21 +246,21 @@ public:
     /*! \brief return kernel matrix \f$ \underline{\underline{K}} \f$ */
     inline const double * const GetKernelMatrix() const
     {
-        assert_msg( init, "ERROR: initialize TangentialInterpolation before calling GetKernelMatrix. Forgot to call ComputeKernelMatrix?\n");
+        UTILITY::assert_msg( init, "ERROR: initialize TangentialInterpolation before calling GetKernelMatrix. Forgot to call ComputeKernelMatrix?\n");
         return m_K;
     }
 
     /*! \brief return LDL factorization of kernel matrix \f$ \underline{\underline{K}} \f$ */
     inline const double * GetKernelMatrixFactorization() const
     {
-        assert_msg( init, "ERROR: initialize TangentialInterpolation before calling GetKernelMatrixFactorization. Forgot to call ComputeKernelMatrix?\n");
+        UTILITY::assert_msg( init, "ERROR: initialize TangentialInterpolation before calling GetKernelMatrixFactorization. Forgot to call ComputeKernelMatrix?\n");
         return m_Kf;
     }
 
     /*! \brief return permutation indices of the factorization TangentialInterpolation::w_i */
     inline const int * GetPermutation() const
     {
-        assert_msg( init, "ERROR: initialize TangentialInterpolation before calling GetPermutation. Forgot to call ComputeKernelMatrix?\n");
+        UTILITY::assert_msg( init, "ERROR: initialize TangentialInterpolation before calling GetPermutation. Forgot to call ComputeKernelMatrix?\n");
         return w_i;
     }
 
