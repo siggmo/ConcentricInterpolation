@@ -34,10 +34,11 @@ URL    : dx.doi.org/10.1007/s10444-019-09726-5
 ==============================
 2.1)   REQUIREMENTS
 ==============================
-       A C++ compiler (e.g. g++) and the GNU GSL library as well as an
-       implementation of LAPACKE are required. (in Debian or Ubuntu systems, the
-       command "sudo apt install liblapacke liblapacke-dev libgsl-dev
-       libgsl23 libgslcblas0" should suffice)
+       A C++ compiler (e.g. g++), the GNU make utility, the GNU GSL library as
+       well as an implementation of LAPACKE are required. (in Debian or Ubuntu
+       systems, the command
+          "sudo apt install g++ make liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0"
+       should suffice)
 
 2.2)   DOCUMENTATION
 ==============================
