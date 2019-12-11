@@ -18,7 +18,7 @@
  *                                     sets on spheres and their application in
  *                                     mesh-free interpolation and
  *                                     differentiation'
- *     JOURNAL NAME, Number/Volume, p. RadiiRadii-YY, 2019
+ *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
  *     DOI   ...
  *     URL   dx.doi.org/...
  *
@@ -55,7 +55,7 @@ protected:
     int     N_rad_supp;     //!< number of interval boundaries, i.e. length of \p Radii.
     const int N_term;       //!< number of terms of the piecewise polynomials (e.g. 2 for linear, 3 for quadratic, ...), i.e. the order of the polynomial plus one. This could also be called \p N_term. \see Interpolant::coeff, Interpolant::weights
     int     D_val;          //!< number of components of the data, each treated individually in a one-dimensional manner. I.e. simultaneous, individual interpolation of \p D_val one-dimensional functions.
-    double  * coeff;        /*!< coefficients \f$ [a,b,c,\dots] \f$ of the polynomial interpolant \f$ a+b\cdot x+c\cdot x^2+\dots \f$. There are Interplant::N_term coefficients at each of the \p N_rad_supp radii \p Radii, \e and for each of the \p D_val components. Thus, the length of \p coeff is <tt> N_rad_supp * D_val * N_term </tt>. \verbatim Access: at the i-th point, for the j-th component, the k-th coefficient is
+    double  * coeff;        /*!< coefficients \f$ [a,b,c,\dots] \f$ of the polynomial interpolant \f$ a+b\cdot x+c\cdot x^2+\dots \f$. There are Interplant::N_term coefficients at each of the \p N_rad_supp x \p Radii, \e and for each of the \p D_val components. Thus, the length of \p coeff is <tt> N_rad_supp * D_val * N_term </tt>. \verbatim Access: at the i-th point, for the j-th component, the k-th coefficient is
     coeff[i*D_val*N_term + j*N_term + k]. \endverbatim This will be copied to RadialInterpolation upon calling RadialInterpolation::AddData(Interpolant&). \see Interpolant::weights, Train()*/
     void    DefaultInit();  //!< initialize data to (secure) default values
     void    Allocate( const int a_n, const int a_D_val ); //!< allocate memory for x and coeff
@@ -192,7 +192,7 @@ public:
  *
  * To get started, call Setup().
  *
- * It is assumed that \e Concentric \e Data is provided, meaning the \e radii at
+ * It is assumed that ConcentricData is provided, meaning the radii at
  * which the data is provided <em>are the same for all directions</em>. While
  * this assumption is detrimental to generality, it provides significant
  * potential for efficiency optimizations. These optimizations are realized in

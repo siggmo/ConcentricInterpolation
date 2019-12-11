@@ -15,7 +15,7 @@
  *                                     sets on spheres and their application in
  *                                     mesh-free interpolation and
  *                                     differentiation'
- *     JOURNAL NAME, Number/Volume, p. RadiiRadii-YY, 2019
+ *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
  *     DOI   ...
  *     URL   dx.doi.org/...
  *
@@ -40,16 +40,16 @@ Interpolant::~Interpolant() {
 
 void Interpolant::DefaultInit() {
     Radii       = 0;
-    coeff   = 0;
-    D_val  = 0;
-    N_rad_supp     = 0;
+    coeff       = 0;
+    D_val       = 0;
+    N_rad_supp  = 0;
 }
 
 void Interpolant::Free() {
     free_array( &Radii );
     free_array( &coeff );
-    D_val = 0;
-    N_rad_supp   = 0;
+    D_val       = 0;
+    N_rad_supp  = 0;
 }
 
 void Interpolant::Allocate( const int a_n, const int a_D_val )
@@ -58,10 +58,10 @@ void Interpolant::Allocate( const int a_n, const int a_D_val )
     assert_msg((a_D_val>=1), "ERROR in Interpolant::Allocate: data-dimension >= 1 expected\n");
 
     Free();
-    D_val = a_D_val;
-    N_rad_supp   = a_n;
-    Radii   = alloc_array(N_rad_supp);
-    coeff = alloc_array(N_term*N_rad_supp*D_val);
+    D_val       = a_D_val;
+    N_rad_supp  = a_n;
+    Radii       = alloc_array(N_rad_supp);
+    coeff       = alloc_array(N_term*N_rad_supp*D_val);
 }
 
 void Interpolant::Train(    const int a_N_rad_supp,
@@ -181,7 +181,7 @@ void InterpolantQuad::Train( int        a_N_rad_supp,
 }
 
 
-void InterpolantQuad::TrainC1( int        a_N_rad_supp,
+void InterpolantQuad::TrainC1( int      a_N_rad_supp,
                 const double * const    a_Radii,
                 int                     a_D_val,
                 const double * const    m_Data        )
@@ -191,10 +191,8 @@ void InterpolantQuad::TrainC1( int        a_N_rad_supp,
 
     Allocate( a_N_rad_supp-2, a_D_val );
     Radii[0] = a_Radii[0];
-    for( int i=1; i<N_rad_supp; i++ ) {
+    for( int i=1; i<N_rad_supp; i++ )
         Radii[i] = a_Radii[i+1];
-        printf("Radii[%2i] = %10.5f\n", i, Radii[i] );
-    }
     // NOTE:    for a_Radii > x_max --> extrapolate linearly, i.e. last point is not stored
     //          (assumed to continue until infinity)
 
@@ -214,7 +212,6 @@ void InterpolantQuad::TrainC1( int        a_N_rad_supp,
         const double * y = m_Data + (i_point+1)*D_val;
         const double * y_next = m_Data + (i_point+2)*D_val;
         const double dx_old = Radii[i_point]-Radii[i_point-1], dx = a_Radii[i_point+2]-a_Radii[i_point+1];
-        printf("i_point: %2i, dx_old %8.4f, dx %8.4f\n", i_point, dx_old, dx);
         // i_comp --> component of the data
         for(int i_comp=0; i_comp<D_val; i_comp++)
         {
@@ -232,8 +229,6 @@ void InterpolantQuad::TrainC1( int        a_N_rad_supp,
             ct = ct + N_term;
         }
     }
-    print_matrix( Radii, N_rad_supp, 1);
-    print_matrix( coeff, N_rad_supp, N_term);
 }
 
 void InterpolantQuad::InterpolationWeights( const int idx, const double a_Radii, double * o_w ) const
@@ -329,7 +324,7 @@ void RadialInterpolation::Setup(    const double * const * const * a_data, //!< 
                                     const int a_N_dir,      //!< \todo rename N_dir to N
                                     const int a_n_x,        //!< \todo rename x to R
                                     const int a_dim_data,   //!< \todo rename dim_data to DimValues
-                                    const double * a_Radii,     //!< \todo rename Radii to Radii
+                                    const double * a_Radii,
                                     Interpolant & a_In,
                                     TangentialInterpolation & a_TI
                                )
