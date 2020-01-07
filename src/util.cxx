@@ -1,5 +1,3 @@
-#include <util.h>
-
 /*
  *  COPYRIGHT NOTES
  *
@@ -13,18 +11,19 @@
  *
  *  This software package is related to the research article
  *
- *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
- *                                     sets on spheres and their application in
- *                                     mesh-free interpolation and
- *                                     differentiation'
- *     Advances in Computational Mathematics, Number/Volume, p. XX-YY, 2019
- *     DOI   10.1007/s10444-019-09726-5
- *     URL   dx.doi.org/10.1007/s10444-019-09726-5
+ *  Authors: Oliver Kunc and Felix Fritzen
+ *  Title  : Generation of energy-minimizing point sets on spheres and their
+ *           application in mesh-free interpolation and differentiation
+ *  Journal: Advances in Computational Mathematics 45(5-6), pp. 3021-3056
+ *  Year   : 2019
+ *  URL    : https://doi.org/10.1007/s10444-019-09726-5
  *
  *  The latest version of this software can be obtained through
  *  https://github.com/EMMA-Group/ConcentricInterpolation
  *
  */
+
+#include <util.h>
 
 using namespace UTILITY;
 
@@ -77,13 +76,13 @@ double ** UTILITY::ReadMatrix( int *r, int *c, const char * fn, const int NMAX_L
     if( F == nullptr )
         fprintf(stderr, "ERROR in ReadMatrix: couldn't open file '%s'\n", fn), exit(-1);
 
-    char    line[8192], buffer[8192], *dummy;
+    char    line[65536], buffer[65536], *dummy;
     char    * c_str = 0;
     bool    sc      = false;
     // skip all comment lines, i.e. lines commencing with # (or whitespaces, i.e. ' ', '\t' followed by #)
     while( !sc && !feof(F) )
     {
-        dummy = fgets(line, 8192, F);
+        dummy = fgets(line, 65536, F);
         // remove leading white spaces:
         int ndel=0, l=strlen(line);
         while( (line[ndel]==' '||line[ndel]=='\t') && ndel<l) ndel++;
@@ -116,13 +115,13 @@ double ** UTILITY::ReadMatrix( int *r, int *c, const char * fn, const int NMAX_L
         }
         if( sc ) {
             nrow++;
-            dummy = fgets( line, 8192, F );
+            dummy = fgets( line, 65536, F );
             if( feof(F) ) sc=false;
             else {
                 cleanString( line, buffer );
                 while( (strlen(buffer)==0) && (!feof(F)) )
                 {
-                    dummy = fgets(line, 8192, F);
+                    dummy = fgets(line, 65536, F);
                     cleanString( line, buffer );
                 }
                 if( buffer[0] == '\0' ) sc=false;
@@ -164,6 +163,20 @@ void UTILITY::print_matrix( const double * const a, const int m, const int n, FI
             fprintf(F,"  %24.17le", a[ IDX2( i, j, n ) ] );
         fprintf(F,"\n");
     }
+}
+/* *************************************************************************************** */
+void UTILITY::print_matrix_sym( const double * a, const int m, FILE * F )
+{
+	unsigned int ct=0;
+	for(int i=0; i<m; i++)
+	{
+		for(int j=0; j<m; j++)
+			if(j<i)
+				fprintf(F, "     sym     ");
+			else
+				fprintf(F, "%12.5le ", a[ct++]);
+		fprintf(F, "\n");
+	}
 }
 /* *************************************************************************************** */
 void UTILITY::assert_msg( const bool condition, const char * str, const bool quit, FILE * outputstream )
@@ -226,25 +239,6 @@ void    UTILITY::SetVector( double * a, const int N, const double a0 )
 
 #pragma unroll (4)
     for(int i=0;i<N;i++) a[i] = a0;
-}
-/* *************************************************************************************** */
-void    UTILITY::MatVecMul( const double * A, const double * x, double * y, const int M, const int N, const bool T )
-{
-    if( T )
-    {
-        SetVector(y, N, 0. );
-        for(int i=0;i<M; i++ )
-        {
-            #pragma unroll (4)
-            for(int j=0;j<N; j++ )
-                y[j]+=A[i*N+j]*x[i];
-        }
-    }
-    else
-    {
-        for(int i=0;i<M;i++)
-            y[i] = VecVecMul( A + i*N, x, N );
-    }
 }
 /* *************************************************************************************** */
 void    UTILITY::Factorize( const double * A, double * Af, int * w_i, const int N )

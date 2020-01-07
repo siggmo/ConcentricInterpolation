@@ -1,6 +1,3 @@
-#ifndef _UTIL_H_
-#define _UTIL_H_
-
 /*
  *  COPYRIGHT NOTES
  *
@@ -14,18 +11,20 @@
  *
  *  This software package is related to the research article
  *
- *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
- *                                     sets on spheres and their application in
- *                                     mesh-free interpolation and
- *                                     differentiation'
- *     Advances in Computational Mathematics, Number/Volume, p. XX-YY, 2019
- *     DOI   10.1007/s10444-019-09726-5
- *     URL   dx.doi.org/10.1007/s10444-019-09726-5
+ *  Authors: Oliver Kunc and Felix Fritzen
+ *  Title  : Generation of energy-minimizing point sets on spheres and their
+ *           application in mesh-free interpolation and differentiation
+ *  Journal: Advances in Computational Mathematics 45(5-6), pp. 3021-3056
+ *  Year   : 2019
+ *  URL    : https://doi.org/10.1007/s10444-019-09726-5
  *
  *  The latest version of this software can be obtained through
  *  https://github.com/EMMA-Group/ConcentricInterpolation
  *
  */
+
+#ifndef _UTIL_H_
+#define _UTIL_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,11 +56,15 @@ void        cleanString( char * in, char * out );
 double **   ReadMatrix(  int *r             /*!<[out] number of read rows*/,
                          int *c             /*!<[out] number of read columns*/,
                          const char * fn,   /*!<[in] name of the file containing the directions*/
-                         const int NMAX_LINES=32768, const int NMAX_COL=32 );
+                         const int NMAX_LINES=2000, const int NMAX_COL=1000 );
 //! dump a pseudo-2d-matrix or an array to a stream. if array, set m = 1.
 void        print_matrix(   const double * const a/*!<[in] 1-d or pseudo 2-d pointer*/,
                             const int m/*!<[in] number of rows*/,
                             const int n/*!<[in] number of columns*/,
+                            FILE * F = stdout/*!<[in] stream pointer*/);
+//! nicely print the upper triangular part of a symmetric pseudo-2d-matrix
+void        print_matrix_sym( const double * const a/*!<[in] pseudo 2-d pointer*/,
+                            const int m/*!<[in] number of rows = number of cols of symmetric matrix*/,
                             FILE * F = stdout/*!<[in] stream pointer*/);
 //! simple assert command: prints str to outputstream if condition is false. if quit is true, it then also exits with DEFAULT_ERROR_CODE
 void        assert_msg(const bool condition, const char *str, const bool quit=true, FILE * outputstream=stderr );
@@ -104,7 +107,33 @@ inline double VecVecMul( const double * a, const double * b, const int N ) //!< 
 
     return res;
 }
-void    MatVecMul( const double * A, const double * x, double * y, const int M, const int N, const bool T=false ); //!< on exit, \f$y_i=A_{ij}x_j\f$ or (if transposition flag \c T==true) \f$y_j=A_{ij}x_i\f$. For use in ConcentricInterpolation, transposition should always be true \see ConcentricInterpolation::Evaluate() and ConcentricInterpolation::Error()
+
+/* *************************************************************************************** */
+/** \brief on exit, \f$y_i=A_{ij}x_j\f$ or (if transposition flag \c transpose==true) \f$y_j=A_{ij}x_i\f$.
+*
+* For use in ConcentricInterpolation, transposition should always be true.
+*
+* \see ConcentricInterpolation::Evaluate()
+* ConcentricInterpolation::Error()
+*/
+inline void MatVecMul( const double * A, const double * x, double * y, const int M, const int N, const bool transpose = false )
+{
+    if( transpose )
+    {
+        SetVector(y, N, 0. );
+        for(int i=0;i<M; i++ )
+        {
+            #pragma unroll (4)
+            for(int j=0;j<N; j++ )
+                y[j]+=A[i*N+j]*x[i];
+        }
+    }
+    else
+    {
+        for(int i=0;i<M;i++)
+            y[i] = VecVecMul( A + i*N, x, N );
+    }
+}
 /* *************************************************************************************** */
 /* use LDL solver to compute the product of the inverse kernel matrix and a vector */
 //! stores LDL factorization of \c A to \c Af, and corresponding interchange indices to the integer array \c w_i. \c A and \c Af need to be of size \c N*\c N and the size of \c w_i should be at least the same size or bigger

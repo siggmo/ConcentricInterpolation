@@ -1,4 +1,3 @@
-#include "concentric_interpolation.h"
 /*
  *  COPYRIGHT NOTES
  *
@@ -12,18 +11,19 @@
  *
  *  This software package is related to the research article
  *
- *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
- *                                     sets on spheres and their application in
- *                                     mesh-free interpolation and
- *                                     differentiation'
- *     Advances in Computational Mathematics, Number/Volume, p. XX-YY, 2019
- *     DOI   10.1007/s10444-019-09726-5
- *     URL   dx.doi.org/10.1007/s10444-019-09726-5
+ *  Authors: Oliver Kunc and Felix Fritzen
+ *  Title  : Generation of energy-minimizing point sets on spheres and their
+ *           application in mesh-free interpolation and differentiation
+ *  Journal: Advances in Computational Mathematics 45(5-6), pp. 3021-3056
+ *  Year   : 2019
+ *  URL    : https://doi.org/10.1007/s10444-019-09726-5
  *
  *  The latest version of this software can be obtained through
  *  https://github.com/EMMA-Group/ConcentricInterpolation
  *
  */
+
+#include "concentric_interpolation.h"
 
 ConcentricInterpolation::ConcentricInterpolation()
 {
@@ -89,6 +89,8 @@ void ConcentricInterpolation::Setup(
     TI_result_length = size_t(a_SetupData.GetN_dir());
     TI_result = new double[ TI_result_length ];
 
+    D_val       = a_SetupData.GetD_val();
+
     initialized = true;
 }
 
@@ -102,12 +104,11 @@ void ConcentricInterpolation::Evaluate(
     fprintf(stderr, "WARNING: ConcentricInterpolation::Evaluate() has not been tested yet!!\n");
     assert_msg( initialized, "ERROR: ConcentricInterpolation must be initialized before evaluation\n");
     assert_msg( (a_DataEvaluation.GetD_inp()==TangentialInterpolant.GetD_inp())
-                    || (a_DataEvaluation.GetD_val()==RadialInterpolant.GetD_val()),
+                    || (a_DataEvaluation.GetD_val()==D_val),
                 "ERROR: dimension mismatch in ConcentricInterpolation::Error\n");
 
     // preparations
     const int N_pts = a_DataEvaluation.GetN_pts();
-    const int D_val = a_DataEvaluation.GetD_val(); // same as RI_result_length/TI_result_length
     const int D_inp = a_DataEvaluation.GetD_inp();
     assert_msg( D_inp==TangentialInterpolant.GetD_inp(), "ERROR: the evaluation data's dimension must match that of TI's input space\n");
     double CurrentRadius;
@@ -121,9 +122,7 @@ void ConcentricInterpolation::Evaluate(
         // get direction
         scale(a_DataEvaluation.GetCoords(n_pt), CurrentRadius, CurrentDirection, D_inp);
 
-        RadialInterpolant.Interpolate( CurrentRadius, RI_result );
-        TangentialInterpolant.KernelVector( 1, CurrentDirection, TI_result );
-        MatVecMul(RI_result, TI_result, a_DataEvaluation.SetValues(n_pt), TI_result_length, D_val, true);
+        Evaluate( CurrentDirection, CurrentRadius, a_DataEvaluation.SetValues(n_pt) );
     }
 
 }
@@ -131,7 +130,7 @@ void ConcentricInterpolation::Evaluate(
 
 
 
-double ConcentricInterpolation::Error( const ConcentricData& a_DataValidation, const int a_OnlyRadius )
+double ConcentricInterpolation::Error( const ConcentricData& a_DataValidation, const int a_error_type, const int a_d_val_start, const int a_d_val_end, const int a_OnlyRadius )
 {
     assert_msg( initialized, "ERROR: ConcentricInterpolation must be initialized before error computation\n");
     assert_msg( (a_DataValidation.GetD_inp()==TangentialInterpolant.GetD_inp())
@@ -139,9 +138,16 @@ double ConcentricInterpolation::Error( const ConcentricData& a_DataValidation, c
                 "ERROR: dimension mismatch in ConcentricInterpolation::Error\n");
     assert_msg( a_OnlyRadius<a_DataValidation.GetN_rad(),
                 "ERROR: if ConcentricInterpolation::Error is called with too large special radius index\n");
+    assert_msg( a_error_type==1 || a_error_type==2,
+                "ERROR: only error types 1 and 2 are currently implemented in ConcentricInterpolation::Error\n");
+    assert_msg( a_d_val_start>=-1 && a_d_val_end>=-1 && a_d_val_end<D_val && a_d_val_start<=a_d_val_end,
+                "ERROR: impossible values of a_d_val_start and/or a_d_val_end in ConcentricInterpolation::Error\n");
     if( !print_info )
     {
-        printf("# ATTENTION: using absolute error measure in Error()\n");
+        if( a_error_type == 1)
+            printf("# using mean relative error in Error()\n");
+        else if( a_error_type == 2)
+            printf("# using RMS absolute error in Error()\n");
         print_info = true;
     }
 
@@ -149,11 +155,13 @@ double ConcentricInterpolation::Error( const ConcentricData& a_DataValidation, c
     int       N_rad_eval    = a_DataValidation.GetN_rad();
     const int N_dir_eval    = a_DataValidation.GetN_dir();
     const int D_inp         = a_DataValidation.GetD_inp();
-    const int D_val         = a_DataValidation.GetD_val(); // same as RI_result_length/TI_result_length
     double CurrentRadius;
-    double CurrentDirection[D_inp];
-    double CurrentValues[D_val];
-    double ErrorValue   = 0.;
+    double * CurrentDirection   = new double[D_inp];
+    double * CurrentValues      = new double[D_val];
+    const int d_val_start   = ( a_d_val_start>=0 ? a_d_val_start : 0 );
+    const int d_val_end     = ( a_d_val_end>=0 ? a_d_val_end : D_val-1 );
+    double error_at_dir     = 0;
+    double error_total      = 0;
 
     // loop validation radii
     for(int n_rad_eval=0; n_rad_eval<N_rad_eval; n_rad_eval++) // n_rad_eval = "number of evaluation radius"
@@ -175,25 +183,39 @@ double ConcentricInterpolation::Error( const ConcentricData& a_DataValidation, c
             for(int d_inp=0; d_inp<D_inp; d_inp++) // d_inp = "dimension of input"
                 CurrentDirection[d_inp] = a_DataValidation.GetDirection(n_dir_eval,d_inp);
 
-            // evaluate CI (as RI, TI, and their product)
-            RadialInterpolant.Interpolate( CurrentRadius, RI_result );
-            TangentialInterpolant.KernelVector( 1, CurrentDirection, TI_result );
-            double temp_value = -1;
-            MatVecMul(RI_result, TI_result, CurrentValues, TI_result_length, D_val, true);
+            // evaluate at current point
+            Evaluate( CurrentDirection, CurrentRadius, CurrentValues );
 
-            /**************** ATTENTION ****************/
-            /** IMPLEMENT YOUR OWN ERROR MEASURE HERE **/
-            /*******************************************/
-
-            // compute error contribution of this point
-            for(int d_val=0; d_val<D_val; d_val++)
+            // compute difference to validation data at current point
+            for(int d_val=d_val_start; d_val<=d_val_end; d_val++) // ATTENTION: loop includes upper bound
                 CurrentValues[d_val] -= a_DataValidation.GetValues()[n_dir_eval][n_rad_eval][d_val];
-            double error_at_dir = norm(CurrentValues, D_val);
-            ErrorValue += error_at_dir * error_at_dir;
+
+            /*****************************************/
+            /* IMPLEMENT YOUR OWN ERROR MEASURE HERE */
+            /* AND RIGHT BEFORE THE RETURN STATEMENT */
+            /*****************************************/
+            if( a_error_type == 1 ) // mean relative error
+                error_at_dir = norm(CurrentValues+d_val_start, d_val_end-d_val_start+1)
+                                / norm(a_DataValidation.GetValues()[n_dir_eval][n_rad_eval]+d_val_start, d_val_end-d_val_start+1);
+            else if ( a_error_type == 2) // rooted mean square
+            {
+                error_at_dir = norm(CurrentValues+d_val_start, d_val_end-d_val_start+1);
+                error_at_dir *= error_at_dir;
+            }
+            error_total += error_at_dir;
         }
     }
-    // normalize and return ErrorValue
-    return sqrt(ErrorValue / double(N_rad_eval*N_dir_eval));
+
+    delete [] CurrentDirection; CurrentDirection = nullptr;
+    delete [] CurrentValues;    CurrentValues    = nullptr;
+
+    // finalize total error
+    if( a_error_type == 1) // mean relative error
+        error_total /= double(N_rad_eval*N_dir_eval);
+    else if( a_error_type == 2) // rooted mean square
+        error_total = sqrt( error_total / double(N_rad_eval*N_dir_eval) );
+
+    return error_total;
 }
 
 
@@ -205,6 +227,9 @@ void ConcentricInterpolation::OptimizeGamma(
         const int       a_N_gamma_regular,
         const int       a_N_gamma_bisection,
         const ConcentricData&     a_DataValidation,
+        const int       a_error_type,
+        const int       a_d_val_start,
+        const int       a_d_val_end,
         const int       a_OnlyRadius
        )
 {
@@ -214,6 +239,7 @@ void ConcentricInterpolation::OptimizeGamma(
     assert_msg(a_gamma_min<a_gamma_max, "ERROR in OptimizeGamma : a_gamma_min must be less than a_gamma_max\n");
     assert_msg(a_N_gamma_regular>=0, "ERROR in OptimizeGamma : num_regular must be non-negative\n");
     assert_msg(a_N_gamma_bisection>=0, "ERROR in OptimizeGamma : a_N_gamma_bisection must be non-negative\n");
+    print_info = false;
 
     // outputs
     printf("\r### Beginning optimization of gamma with the following parameters:\n");
@@ -221,6 +247,12 @@ void ConcentricInterpolation::OptimizeGamma(
     printf("#   a_gamma_max         = %lf\n", a_gamma_max);
     printf("#   num_gamma_regular   = %i\n", a_N_gamma_regular);
     printf("#   num_gamma_bisec     = %i\n", a_N_gamma_bisection);
+    printf("#   error type          : ");
+    if( a_error_type == 1 )
+        printf("mean relative\n");
+    else if( a_error_type == 2 )
+        printf("RMS absolute\n");
+    printf("#   components of vector of values for error computation: %i ... %i (inclusive, zero-based)\n", a_d_val_start, a_d_val_end);
     if( a_OnlyRadius<0 )
         printf("#   consider all radii of the provided validation data set\n");
     else
@@ -243,7 +275,7 @@ void ConcentricInterpolation::OptimizeGamma(
     int i_gamma = 0; // gamma index
     try{        // experience suggests that if there is no exception thrown for a_gamma_min, then there won't be any later on
         SetGamma(gammas[i_gamma], true, true);
-        Errors[i_gamma] = Error(a_DataValidation, a_OnlyRadius);
+        Errors[i_gamma] = Error(a_DataValidation, a_error_type, a_d_val_start, a_d_val_end, a_OnlyRadius);
         ErrorMinimum    = Errors[i_gamma];
         printf("\r  %4i     %f       %5.3le         !\n", i_gamma, gammas[i_gamma], Errors[i_gamma]);  // \r is carriage return for output of progress (called from InterpolateOnSet)
     } catch(int e) {
@@ -253,7 +285,7 @@ void ConcentricInterpolation::OptimizeGamma(
     for(i_gamma=1; i_gamma<a_N_gamma_regular + 2; i_gamma++)
     {
         SetGamma(gammas[i_gamma], true, true);
-        Errors[i_gamma] = Error(a_DataValidation, a_OnlyRadius);
+        Errors[i_gamma] = Error(a_DataValidation, a_error_type, a_d_val_start, a_d_val_end, a_OnlyRadius);
         printf("\r  %4i     %f       %5.3le", i_gamma, gammas[i_gamma], Errors[i_gamma]);
         if(Errors[i_gamma]<ErrorMinimum)
         {
@@ -322,7 +354,7 @@ void ConcentricInterpolation::OptimizeGamma(
 
         // set the bisecting gamma and compute error
         SetGamma(gamma_mid, true, true);
-        Error_mid = Error(a_DataValidation, a_OnlyRadius);
+        Error_mid = Error(a_DataValidation, a_error_type, a_d_val_start, a_d_val_end, a_OnlyRadius);
         printf("\r  %4i     %f       %8.6le", n_bisec, gamma_mid, Error_mid); fflush(stdout);
 
         // check for new minimum error
@@ -352,7 +384,7 @@ void ConcentricInterpolation::OptimizeGamma(
         keep_best_gamma = false;
     }
 
-    printf("#   finished gamma optimization with gamma = %5.3le yielding Errors %5.3le\n", gamma_best, ErrorMinimum);
+    printf("#   finished gamma optimization with gamma = %5.3le yielding errors %8.6le\n", gamma_best, ErrorMinimum);
 }
 
 

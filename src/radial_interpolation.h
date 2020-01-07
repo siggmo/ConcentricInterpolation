@@ -1,12 +1,9 @@
-#ifndef _RADIAL_INTERPOLATION_H_
-#define _RADIAL_INTERPOLATION_H_
-
 /*
  *  COPYRIGHT NOTES
  *
  *  ConcentricInterpolation
- *  Copyright (C) 2018  Felix Fritzen    ( fritzen@mechbau.uni-stuttgart.de )
- *                      and Oliver Kunc  ( kunc@mechbau.uni-stuttgart.de )
+ * Copyright (C) 2018-2019 by Felix Fritzen (fritzen@mechbau.uni-stuttgart.de)
+ *                         and Oliver Kunc (kunc@mechbau.uni-stuttgart.de
  * All rights reserved.
  *
  * This source code is licensed under the BSD 3-Clause License found in the
@@ -14,19 +11,20 @@
  *
  *  This software package is related to the research article
  *
- *     Oliver Kunc and Felix Fritzen: 'Generation of energy-minimizing point
- *                                     sets on spheres and their application in
- *                                     mesh-free interpolation and
- *                                     differentiation'
- *     JOURNAL NAME, Number/Volume, p. XX-YY, 2019
- *     DOI   ...
- *     URL   dx.doi.org/...
+ *  Authors: Oliver Kunc and Felix Fritzen
+ *  Title  : Generation of energy-minimizing point sets on spheres and their
+ *           application in mesh-free interpolation and differentiation
+ *  Journal: Advances in Computational Mathematics 45(5-6), pp. 3021-3056
+ *  Year   : 2019
+ *  URL    : https://doi.org/10.1007/s10444-019-09726-5
  *
  *  The latest version of this software can be obtained through
  *  https://github.com/EMMA-Group/ConcentricInterpolation
  *
  */
 
+#ifndef _RADIAL_INTERPOLATION_H_
+#define _RADIAL_INTERPOLATION_H_
 
 #include <stdio.h>
 #include <stdlib.h>

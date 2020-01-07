@@ -24,27 +24,33 @@ Authors: Oliver Kunc and Felix Fritzen
 Title  : Generation of energy-minimizing point sets on spheres and their
          application in mesh-free interpolation and differentiation
 Journal: Advances in Computational Mathematics
-Year   : ...
-Volume : ...
-Number : ...
+Year   : 2019
+Volume : 45
+Issue  : 5-6
+Pages  : 3021-3056
 DOI    : 10.1007/s10444-019-09726-5
-URL    : dx.doi.org/10.1007/s10444-019-09726-5
+URL    : https://doi.org/10.1007/s10444-019-09726-5
 
 2)     HOW TO USE
 ==============================
 2.1)   REQUIREMENTS
 ==============================
        A C++ compiler (e.g. g++), the GNU make utility, the GNU GSL library as
-       well as an implementation of LAPACKE are required. (in Debian or Ubuntu
+       well as an implementation of LAPACKE are required. In Debian or Ubuntu
        systems, the command
           "sudo apt install g++ make liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0"
-       should suffice)
+       should suffice.
 
 2.2)   DOCUMENTATION
 ==============================
-       See doxygen output in ./doxygen/html/index.html
-       or in ./doxygen/latex/*.pdf for class documentation
-       (build command: "doxygen ConcentricInterpolation.doxy").
+       Build command for the documentation:
+          "doxygen ConcentricInterpolation.doxy"
+       This requires doxygen software which can be installed by running
+          "sudo apt install doxygen"
+       on Debian or Ubuntu systems. Then, see doxygen output in
+          ./doxygen/html/index.html
+       or in
+          ./doxygen/latex/*.pdf
        See inline comments for further details.
 
 2.3)   COMPILATION and EXAMPLE
@@ -76,6 +82,8 @@ Section 1) "WHAT'S THIS".
 3g) Const correctness: top-level pointers are not const, all lower levels should
     be const. This is mostly but not 100% consistent atm.
 3h) For essential conditional checks in functions, use UTILITY::assert_msg()
+3i) If a scope (e.g. body of a loop) consists of only one line, don't use
+    braces "{}" but only indentation.
 
 4) BUG REPORTING
 ==============================
