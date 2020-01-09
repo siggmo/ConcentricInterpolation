@@ -56,7 +56,7 @@ void        cleanString( char * in, char * out );
 double **   ReadMatrix(  int *r             /*!<[out] number of read rows*/,
                          int *c             /*!<[out] number of read columns*/,
                          const char * fn,   /*!<[in] name of the file containing the directions*/
-                         const int NMAX_LINES=2000, const int NMAX_COL=1000 );
+                         const int NMAX_LINES=2000, const int NMAX_COL=1000 ); // ATTENTION: if this function segfaults or fails in some other way, try increasing NMAX_LINES and NMAX_COL.
 //! dump a pseudo-2d-matrix or an array to a stream. if array, set m = 1.
 void        print_matrix(   const double * const a/*!<[in] 1-d or pseudo 2-d pointer*/,
                             const int m/*!<[in] number of rows*/,

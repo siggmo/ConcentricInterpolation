@@ -76,13 +76,14 @@ double ** UTILITY::ReadMatrix( int *r, int *c, const char * fn, const int NMAX_L
     if( F == nullptr )
         fprintf(stderr, "ERROR in ReadMatrix: couldn't open file '%s'\n", fn), exit(-1);
 
-    char    line[65536], buffer[65536], *dummy;
+#define MAX_SIZE 65536
+    char    line[MAX_SIZE], buffer[MAX_SIZE], *dummy;
     char    * c_str = 0;
     bool    sc      = false;
     // skip all comment lines, i.e. lines commencing with # (or whitespaces, i.e. ' ', '\t' followed by #)
     while( !sc && !feof(F) )
     {
-        dummy = fgets(line, 65536, F);
+        dummy = fgets(line, MAX_SIZE, F);
         // remove leading white spaces:
         int ndel=0, l=strlen(line);
         while( (line[ndel]==' '||line[ndel]=='\t') && ndel<l) ndel++;
@@ -115,13 +116,13 @@ double ** UTILITY::ReadMatrix( int *r, int *c, const char * fn, const int NMAX_L
         }
         if( sc ) {
             nrow++;
-            dummy = fgets( line, 65536, F );
+            dummy = fgets( line, MAX_SIZE, F );
             if( feof(F) ) sc=false;
             else {
                 cleanString( line, buffer );
                 while( (strlen(buffer)==0) && (!feof(F)) )
                 {
-                    dummy = fgets(line, 65536, F);
+                    dummy = fgets(line, MAX_SIZE, F);
                     cleanString( line, buffer );
                 }
                 if( buffer[0] == '\0' ) sc=false;
