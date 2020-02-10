@@ -67,7 +67,7 @@ private:
 
     int                     D_val;                  //!< dimension of the data, i.e. number of scalar values to be interpolated at once
     bool                    initialized;
-    bool                    print_info;             //!< when calling Error(), a message is printed once-in-a-runtime
+    bool                    printed_info_error;     //!< when calling Error(), a message is printed once-in-a-runtime
 
 public:
     ConcentricInterpolation();                              //!< Default constructor initializing empty objects
@@ -141,7 +141,7 @@ public:
         const int               a_error_type = 2,   //!< [in] if 1: mean relative error; if 2: rooted mean square of absolute difference
         const int               a_d_val_start = -1, //!< [in] starting index of \f$ \underline{f}^{\rm error} \f$ within \f$ \underline{f} \f$, zero-based. See also main description of Error()
         const int               a_d_val_end = -1,   //!< [in] ending index of \f$ \underline{f}^{\rm error} \f$ within \f$ \underline{f} \f$, zero-based. See also main description of Error()
-        const int               a_OnlyRadius = -1   //!< [in, optional] zero-based index of the only radius that should be considered (such that the error is computed on a sphere). default value -1 means that all radii will be considered
+        const int               a_OnlyRadius = -1   //!< [in, optional] zero-based index of the only radius that should be considered (such that the error is computed on a sphere). default value -1 means that all radii will be considered, except the radius zero (at which ConcentricData must be zero in any case).
                 );
 
     /** \brief Changes the kernel parameter \f$ \gamma \f$ and processes the
@@ -181,6 +181,8 @@ public:
         const int       a_d_val_end,            //!< [in, optional] see Error()
         const int       a_OnlyRadius = -1       //!< [in, optional] see Error()
                );
+
+    void                    PrintInfo(FILE*F=stdout);//!< print information about this object, e.g. value of kernel parameter, number of kernels, number of radial support points, etc.
 
 };
 

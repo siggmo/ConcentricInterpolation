@@ -5,7 +5,7 @@ LIB=-L. -L ../src -L/usr/lib/x86_64-linux-gnu/\
 		-Wl,--start-group \
 		-llapacke			\
 		-lgsl				\
-		-lconinter				\
+		-lconinter			\
 		-Wl,--end-group
 ### for debugging try:
 # OPT=-O0 -g
@@ -20,6 +20,11 @@ demo:	interpolation_demo.cxx
 	make -C ../src lib
 	$(CXX) $(OPT) -c interpolation_demo.cxx $(INC)
 	$(CXX) $(OPT) interpolation_demo.o -o $(BINDIR)/interpolation_demo $(LIB)
+
+demo_largestrain:	interpolation_demo_largestrain.cxx
+	make -C ../src lib
+	$(CXX) $(OPT) -c interpolation_demo_largestrain.cxx $(INC)
+	$(CXX) $(OPT) interpolation_demo_largestrain.o -o $(BINDIR)/interpolation_demo_largestrain $(LIB)
 
 clean:
 	rm -rf *.o

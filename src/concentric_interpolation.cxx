@@ -30,13 +30,13 @@ ConcentricInterpolation::ConcentricInterpolation()
     RI_result = TI_result = nullptr;
     RI_result_length = TI_result_length = 0;
     initialized = false;
-    print_info  = false;
+    printed_info_error  = false;
 }
 
 ConcentricInterpolation::ConcentricInterpolation(ConcentricData& a_SetupData)
 {
     initialized = false;
-    print_info  = false;
+    printed_info_error  = false;
     Setup(a_SetupData);
 }
 
@@ -142,13 +142,13 @@ double ConcentricInterpolation::Error( const ConcentricData& a_DataValidation, c
                 "ERROR: only error types 1 and 2 are currently implemented in ConcentricInterpolation::Error\n");
     assert_msg( a_d_val_start>=-1 && a_d_val_end>=-1 && a_d_val_end<D_val && a_d_val_start<=a_d_val_end,
                 "ERROR: impossible values of a_d_val_start and/or a_d_val_end in ConcentricInterpolation::Error\n");
-    if( !print_info )
+    if( !printed_info_error )
     {
         if( a_error_type == 1)
-            printf("# using mean relative error in Error()\n");
+            printf("# [ using mean relative error ]\n");
         else if( a_error_type == 2)
-            printf("# using RMS absolute error in Error()\n");
-        print_info = true;
+            printf("# [ using RMS absolute error ]\n");
+        printed_info_error = true;
     }
 
     // preparations
@@ -164,7 +164,7 @@ double ConcentricInterpolation::Error( const ConcentricData& a_DataValidation, c
     double error_total      = 0;
 
     // loop validation radii
-    for(int n_rad_eval=0; n_rad_eval<N_rad_eval; n_rad_eval++) // n_rad_eval = "number of evaluation radius"
+    for(int n_rad_eval=1; n_rad_eval<N_rad_eval; n_rad_eval++) // n_rad_eval = "number of evaluation radius". ATTENTION: starts at 1, meaning that the data at radius 0 (which has index 0) is NOT considered. that should be 0 anyways.
     {
         // if only one radius should be evaluated, n_rad_eval and N_rad_eval are now modified
         if(a_OnlyRadius>=0)
@@ -239,7 +239,7 @@ void ConcentricInterpolation::OptimizeGamma(
     assert_msg(a_gamma_min<a_gamma_max, "ERROR in OptimizeGamma : a_gamma_min must be less than a_gamma_max\n");
     assert_msg(a_N_gamma_regular>=0, "ERROR in OptimizeGamma : num_regular must be non-negative\n");
     assert_msg(a_N_gamma_bisection>=0, "ERROR in OptimizeGamma : a_N_gamma_bisection must be non-negative\n");
-    print_info = false;
+    printed_info_error = false;
 
     // outputs
     printf("\r### Beginning optimization of gamma with the following parameters:\n");
@@ -315,13 +315,13 @@ void ConcentricInterpolation::OptimizeGamma(
     {
         gamma2 = gammas[index_best_gamma-1];
         Error2 = Errors[index_best_gamma-1];
-        printf("#   best neighbor is next smaller gamma (%lf) with Errors %5.3le\n", gamma2, Error2);
+        printf("#   best neighbor is next smaller gamma (%lf) with error %5.3le\n", gamma2, Error2);
     }
     else
     {
         gamma2 = gammas[index_best_gamma+1];
         Error2 = Errors[index_best_gamma+1];
-        printf("#   best neighbor is next larger gamma (%lf) with Errors %5.3le\n", gamma2, Error2);
+        printf("#   best neighbor is next larger gamma (%lf) with error %5.3le\n", gamma2, Error2);
     }
 
     // do the bisection, i.e. evaluate within the interval and compare with the outer values
@@ -384,7 +384,7 @@ void ConcentricInterpolation::OptimizeGamma(
         keep_best_gamma = false;
     }
 
-    printf("#   finished gamma optimization with gamma = %5.3le yielding errors %8.6le\n", gamma_best, ErrorMinimum);
+    printf("#   finished gamma optimization with gamma = %8.6le yielding errors %8.6le\n", gamma_best, ErrorMinimum);
 }
 
 
@@ -394,4 +394,16 @@ void ConcentricInterpolation::SetGamma( const double a_gamma, const bool a_recom
 {
     TangentialInterpolant.SetGamma( a_gamma, a_recompute_kernel_matrix, a_quiet );
     RadialInterpolant.MultiplyKernelMatrixAndReorder( TangentialInterpolant );
+}
+
+
+void ConcentricInterpolation::PrintInfo(FILE * fileptr)
+{
+    fprintf(fileptr, "###############################################\n");
+    fprintf(fileptr, "# no. support directions:  %5i                #\n", TangentialInterpolant.GetN_dir_supp());
+    fprintf(fileptr, "# no. support radii:       %5i                #\n", RadialInterpolant.GetN_rad_supp()); // TODO
+    fprintf(fileptr, "# kernel parameter:          %17.9e  #\n", TangentialInterpolant.GetGamma());
+    fprintf(fileptr, "# no. input dimensions:    %5i                #\n", TangentialInterpolant.GetD_inp());
+    fprintf(fileptr, "# no. output components:   %5i                #\n", RadialInterpolant.GetD_val());
+    fprintf(fileptr, "###############################################\n");
 }

@@ -41,41 +41,41 @@ void Interpolant::DefaultInit() {
     Radii       = 0;
     coeff       = 0;
     D_val       = 0;
-    N_rad_supp  = 0;
+    N_interval  = 0;
 }
 
 void Interpolant::Free() {
     free_array( &Radii );
     free_array( &coeff );
     D_val       = 0;
-    N_rad_supp  = 0;
+    N_interval  = 0;
 }
 
-void Interpolant::Allocate( const int a_n, const int a_D_val )
+void Interpolant::Allocate( const int a_N_interval, const int a_D_val )
 {
-    assert_msg((a_n>=2), "ERROR in Interpolant::Allocate: number of support points >= 2 expected\n");
+    assert_msg((a_N_interval+1>=2), "ERROR in Interpolant::Allocate: number of support points >= 2 expected\n");
     assert_msg((a_D_val>=1), "ERROR in Interpolant::Allocate: data-dimension >= 1 expected\n");
 
     Free();
     D_val       = a_D_val;
-    N_rad_supp  = a_n;
-    Radii       = alloc_array(N_rad_supp);
-    coeff       = alloc_array(N_term*N_rad_supp*D_val);
+    N_interval  = a_N_interval;
+    Radii       = alloc_array(N_interval);
+    coeff       = alloc_array(N_term*N_interval*D_val);
 }
 
-void Interpolant::Train(    const int a_N_rad_supp,
+void Interpolant::Train(    const int a_N_radii,
                             const double * const a_Radii,
                             const int a_D_val,
                             const double * const * m_data   )
 {
     Free();
-    Allocate( a_N_rad_supp-1, a_D_val );  // NOTE: input MUST contain zero, but it is not sto
-    for( int i_point=0; i_point<N_rad_supp; i_point++ ) Radii[i_point] = a_Radii[i_point];
+    Allocate( a_N_radii-1, a_D_val );  // NOTE: input MUST contain zero (i.e. must be counted in a_N_radii)
+    for( int i_point=0; i_point<N_interval; i_point++ ) Radii[i_point] = a_Radii[i_point];
     // NOTE:    for a_Radii > x_max --> extrapolate linearly, i_point.e. last point is not stored
     //          (assumed to continue until infinity)
 
     size_t ct = 0;
-    for( int i_point=0;i_point<N_rad_supp; i_point++ )
+    for( int i_point=0; i_point<N_interval; i_point++ )
     {
         for(int i_comp=0; i_comp<D_val; i_comp++)
         {
@@ -112,7 +112,7 @@ void Interpolant::InterpolationWeights( const double a_Radii, double * o_w) cons
 
 void Interpolant::InterpolationWeights( const int idx, const double a_Radii, double * o_w ) const
 {
-    assert_msg( ((idx >=0) || (idx<N_rad_supp)), "ERROR in InterpolationWeights(const int, const double, double *): idx out of bound\n");
+    assert_msg( ((idx >=0) || (idx<N_interval)), "ERROR in InterpolationWeights(const int, const double, double *): idx out of bound\n");
     o_w[0] = 1.;
     o_w[1] = a_Radii-Radii[idx];
 }
@@ -149,22 +149,22 @@ InterpolantQuad::~InterpolantQuad()
     Free();
 }
 
-void InterpolantQuad::Train( int        a_N_rad_supp,
+void InterpolantQuad::Train( int        a_N_interval,
                 const double * const    a_Radii,
                 int                     a_D_val,
                 const double * const    m_Data        )
 {
     Free();
-    assert_msg((a_N_rad_supp>=3), "ERROR in InterpolantQuad::Train: number of support points >= 3 expected\n");
-    assert_msg( int((a_N_rad_supp-1)/2)*2 == a_N_rad_supp-1, "ERROR in InterpolantQuad::Train(): a_N_rad_supp must be in {3, 5, 7, ...}\n");
+    assert_msg((a_N_interval>=3), "ERROR in InterpolantQuad::Train: number of support points >= 3 expected\n");
+    assert_msg( int((a_N_interval-1)/2)*2 == a_N_interval-1, "ERROR in InterpolantQuad::Train(): a_N_interval must be in {3, 5, 7, ...}\n");
 
-    Allocate( (a_N_rad_supp-1)/2, a_D_val );
-    for( int i_point=0; i_point<N_rad_supp; i_point++ ) Radii[i_point] = a_Radii[2*i_point];
+    Allocate( (a_N_interval-1)/2, a_D_val );
+    for( int i_point=0; i_point<N_interval; i_point++ ) Radii[i_point] = a_Radii[2*i_point];
     // NOTE:    for a_Radii > x_max --> extrapolate linearly, i.e. last point is not stored
     //          (assumed to continue until infinity)
 
     size_t ct = 0;
-    for( int i_point=0;i_point<N_rad_supp; i_point++ )
+    for( int i_point=0;i_point<N_interval; i_point++ )
     {
         const double dx1 = a_Radii[2*i_point+1]-a_Radii[2*i_point], dx2 = a_Radii[2*i_point+2]-a_Radii[2*i_point];
         for(int i_comp=0; i_comp<D_val; i_comp++)
@@ -175,22 +175,22 @@ void InterpolantQuad::Train( int        a_N_rad_supp,
             ct += 3; // 3 = N_term
         }
     }
-    print_matrix( Radii, 1, N_rad_supp);
-    print_matrix( coeff, N_rad_supp, 3);
+    print_matrix( Radii, 1, N_interval);
+    print_matrix( coeff, N_interval, 3);
 }
 
 
-void InterpolantQuad::TrainC1( int      a_N_rad_supp,
+void InterpolantQuad::TrainC1( int      a_N_interval,
                 const double * const    a_Radii,
                 int                     a_D_val,
                 const double * const    m_Data        )
 {
     Free();
-    assert_msg((a_N_rad_supp>=3), "ERROR in InterpolantQuad::TrainC1: number of support points >= 3 expected\n");
+    assert_msg((a_N_interval>=3), "ERROR in InterpolantQuad::TrainC1: number of support points >= 3 expected\n");
 
-    Allocate( a_N_rad_supp-2, a_D_val );
+    Allocate( a_N_interval-2, a_D_val );
     Radii[0] = a_Radii[0];
-    for( int i=1; i<N_rad_supp; i++ )
+    for( int i=1; i<N_interval; i++ )
         Radii[i] = a_Radii[i+1];
     // NOTE:    for a_Radii > x_max --> extrapolate linearly, i.e. last point is not stored
     //          (assumed to continue until infinity)
@@ -206,7 +206,7 @@ void InterpolantQuad::TrainC1( int      a_N_rad_supp,
         ct = ct + N_term;
     }
 
-    for( int i_point=1;i_point<N_rad_supp; i_point++ )
+    for( int i_point=1;i_point<N_interval; i_point++ )
     {
         const double * y = m_Data + (i_point+1)*D_val;
         const double * y_next = m_Data + (i_point+2)*D_val;
@@ -232,7 +232,7 @@ void InterpolantQuad::TrainC1( int      a_N_rad_supp,
 
 void InterpolantQuad::InterpolationWeights( const int idx, const double a_Radii, double * o_w ) const
 {
-    assert_msg( ((idx >=0) || (idx<N_rad_supp)), "ERROR in InterpolationWeights(const int, const double, double *): idx out of bound\n");
+    assert_msg( ((idx >=0) || (idx<N_interval)), "ERROR in InterpolationWeights(const int, const double, double *): idx out of bound\n");
     o_w[0] = 1.;
     o_w[1] = a_Radii-Radii[idx];
     o_w[2] = o_w[1]*o_w[1];
@@ -321,7 +321,7 @@ void RadialInterpolation::DefaultInit()
 
 void RadialInterpolation::Setup(    const double * const * const * a_data, //!< \todo rename data to values
                                     const int a_N_dir,      //!< \todo rename N_dir to N
-                                    const int a_n_x,        //!< \todo rename x to R
+                                    const int a_n_x,        //!< including zero. \todo rename x to R
                                     const int a_dim_data,   //!< \todo rename dim_data to DimValues
                                     const double * a_Radii,
                                     Interpolant & a_In,

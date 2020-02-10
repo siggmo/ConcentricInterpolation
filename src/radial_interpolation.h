@@ -49,14 +49,14 @@ class RadialInterpolation;
 
 class Interpolant {
 protected:
-    double  * Radii;        //!< supporting radii of the piecewise polynomial interpolation, i.e. interval boundaries. contains \p N_rad_supp entries. TODO: including zero?
-    int     N_rad_supp;     //!< number of interval boundaries, i.e. length of \p Radii.
+    double  * Radii;        //!< supporting radii of the piecewise polynomial interpolation, i.e. interval boundaries. contains \p N_interval+1 entries, including zero.
+    int     N_interval;     //!< number of interval boundaries, i.e. length of \p Radii. counting the zero radius.
     const int N_term;       //!< number of terms of the piecewise polynomials (e.g. 2 for linear, 3 for quadratic, ...), i.e. the order of the polynomial plus one. This could also be called \p N_term. \see Interpolant::coeff, Interpolant::weights
     int     D_val;          //!< number of components of the data, each treated individually in a one-dimensional manner. I.e. simultaneous, individual interpolation of \p D_val one-dimensional functions.
-    double  * coeff;        /*!< coefficients \f$ [a,b,c,\dots] \f$ of the polynomial interpolant \f$ a+b\cdot x+c\cdot x^2+\dots \f$. There are Interplant::N_term coefficients at each of the \p N_rad_supp x \p Radii, \e and for each of the \p D_val components. Thus, the length of \p coeff is <tt> N_rad_supp * D_val * N_term </tt>. \verbatim Access: at the i-th point, for the j-th component, the k-th coefficient is
+    double  * coeff;        /*!< coefficients \f$ [a,b,c,\dots] \f$ of the polynomial interpolant \f$ a+b\cdot x+c\cdot x^2+\dots \f$. There are Interplant::N_term coefficients at each of the \p N_interval x \p Radii, \e and for each of the \p D_val components. Thus, the length of \p coeff is <tt> N_interval * D_val * N_term </tt>. \verbatim Access: at the i-th point, for the j-th component, the k-th coefficient is
     coeff[i*D_val*N_term + j*N_term + k]. \endverbatim This will be copied to RadialInterpolation upon calling RadialInterpolation::AddData(Interpolant&). \see Interpolant::weights, Train()*/
     void    DefaultInit();  //!< initialize data to (secure) default values
-    void    Allocate( const int a_n, const int a_D_val ); //!< allocate memory for x and coeff
+    void    Allocate( const int a_N_rad_supp, const int a_D_val ); //!< allocate memory for Radii and coeff
     void    Free();         //!< clear memory
 private:
     double  weights[2];     //!< Interpolation weights. The piecewise polynomials have the form \f$ a+b\cdot x+c\cdot x^2+\dots \f$. The array \p weights contains the values \f$ [1,x,x^2,\dots] \f$. \see InterpolationWeights(), Interpolant::coeff
@@ -73,18 +73,20 @@ public:
     //! return the data of the current interval
     inline const double * const InterpolationData( const int idx ) const
     { return coeff + idx*D_val*N_term; }
-    //! return \p N_rad_supp
-    inline int NIntervals() const { return N_rad_supp; }
+    //! return number of intervals between supporting radii
+    inline int NIntervals() const { return N_interval; }
+    //! return number of supporting radii
+    inline int NRadii() const { return N_interval + 1; }
     //! return \p N_term
     inline int NTerms() const { return N_term; }
     //! return the interval in which the point is found
     inline int Interval(const double x) const {
         if( x <= Radii[0] )
             return 0; /* take left-most interval and use negative linear extrapolation */
-        if( x >= Radii[N_rad_supp-1] )
-            return N_rad_supp-1;
+        if( x >= Radii[N_interval-1] )
+            return N_interval-1;
 
-        int l=0, r=N_rad_supp-1, m=0;
+        int l=0, r=N_interval-1, m=0;
         while(r-l>3)
         {
             m=int((l+r)/2);
@@ -95,8 +97,8 @@ public:
         return l;
     }
 
-    //! sets the \p N_rad_supp supporting radii \p Radii, the number \p D_val of components, and fills the coefficients \p coeff \see Interpolant::N_rad_supp, Interpolant::Radii, Interpolant::D_val, Interpolant::coeff
-    void Train( const int a_N_rad_supp,            /*!< [in] number of positions */
+    //! sets the \p N_interval+1 supporting radii \p Radii, the number \p D_val of components, and fills the coefficients \p coeff \see Interpolant::N_interval, Interpolant::Radii, Interpolant::D_val, Interpolant::coeff
+    void Train( const int a_N_rad_supp,            /*!< [in] number of radii, including zero */
                 const double * const a_Radii,   /*!< [in] data positions */
                 const int a_D_val,         /*!< [in] number of components of the data, see Interpolant::D_val*/
                 const double * const* m_Data/*!< [in] data component \f$ j \f$ at point \f$ x_i \f$ --> <tt> m_Data[i][j] </tt>*/
@@ -230,6 +232,9 @@ public:
 
     //! same as CompData()
     inline int GetD_val() const { return D_val; }
+
+    //! return the number of supporting radii
+    inline int GetN_rad_supp() const { return In->NRadii(); }
 
     //! return the data size (\p D_val * \p N_term) for one radial direction
     inline int DataSize() const { return N_term*D_val; }

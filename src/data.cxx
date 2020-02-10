@@ -102,7 +102,7 @@ ConcentricData::ConcentricData(
     int must_be_N_dir = 0;
     int must_be_D_val_times_N_rad = 0;
     double ** temp2 = ReadMatrix( &must_be_N_dir, &must_be_D_val_times_N_rad, a_FilenameSupportValues );
-    printf("# ConcentridData: reading %s\n", a_FilenameSupportValues);
+    printf("# ConcentricData: reading %s\n", a_FilenameSupportValues);
         assert_msg( must_be_N_dir==N_dir, "ERROR: values file must have same number of rows as directions file\n");
         assert_msg( must_be_D_val_times_N_rad==(D_val*N_rad), "ERROR: values file's columns are not consistent with number of radii and dimension of values\n");
     Values = alloc_array3(N_dir, N_rad, D_val);

@@ -11,7 +11,7 @@ Content of this file
 1)     WHAT'S THIS
 ==============================
 The Concentric Interpolation method efficiently interpolates multi-dimensional
-data in multi-dimensional spaces. It is based on a concentric placement of the
+data on multi-dimensional spaces. It is based on a concentric placement of the
 function samples, i.e. centered around the origin and placed along
 equidistributed directions at certain radii. This structure is exploited by
 means of a two-staged interpolation: first, a radial interpolation is performed,
