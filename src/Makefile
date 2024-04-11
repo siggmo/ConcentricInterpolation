@@ -1,7 +1,7 @@
 ### for debugging try:
 # OPT=-O0 -g -std=c++11
 ### for performance related builds use
-OPT=-O6 -std=c++11
+OPT=-O6 -std=c++11 -fPIC
 AR=ar
 CXX=g++
 INC=-I.
