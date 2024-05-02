@@ -17,9 +17,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_compile_options(-fdiagnostics-color=always -fmax-errors=1)
 
-# add flags from presets
-add_compile_options(${PRESET_CXX_FLAGS})
-
 # handle rpath weirdness
 if(NOT APPLE)
   set(CMAKE_INSTALL_RPATH $ORIGIN)
