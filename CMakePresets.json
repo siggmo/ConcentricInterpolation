@@ -14,9 +14,12 @@
     {
       "name": "avx2",
       "displayName": "AVX2 Optimization",
+      "inherits": [
+        "base"
+      ],
       "hidden": true,
       "cacheVariables": {
-        "PRESET_CXX_FLAGS": "-mavx2"
+        "CMAKE_CXX_FLAGS": "-mavx2"
       }
     },
     {
