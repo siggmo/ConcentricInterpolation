@@ -55,11 +55,11 @@ URL    : https://doi.org/10.1007/s10444-019-09726-5
 
 2.3)   COMPILATION and EXAMPLE
 ==============================
-2.3a)  For the LIBRARY, go to the "src" directory and run "make" on a terminal
-       (adjust Makefile if required)
-2.3b)  For an executable EXAMPLE, change to the "examples" directory. Run "make"
-       on a terminal. Then change to "bin" directory, where the binary
-       "interpolation demo" is located, and run it.
+2.3) run cmake --preset ci-linux
+         cmake --build --preset ci-linux
+         cmake --install build/release (or use --prefix install_dir/ for a test install)
+
+    Now you can use `find_package(ConInter)` and `target_link_libraries(tgt ConInter)` to find and link to the library in other CMake projects.
 
 2.4)   HOW TO CITE
 ==============================

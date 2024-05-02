@@ -5,6 +5,13 @@
 # lib (src/Makefile:23), consisting of the following targets:
 # ##############################################################################
 
+# Headers
+set_target_properties(
+  ConInter
+  PROPERTIES PUBLIC_HEADER src/concentric_interpolation.h
+             PRIVATE_HEADER
+             "src/radial_interpolation.h;src/tangential_interpolation.h;src/data.h;src/util.h")
+
 # CI (src/Makefile:34)
 target_sources(ConInter PRIVATE concentric_interpolation.cxx)
 
