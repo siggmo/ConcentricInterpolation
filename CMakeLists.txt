@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 
 # ##############################################################################
 # GENERAL SETTINGS
@@ -52,7 +52,10 @@ target_include_directories(
   ConInter PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
 add_subdirectory(src)
 
-add_subdirectory(examples)
+option(FETIGER_BUILD_EXAMPLES ${PROJECT_IS_TOP_LEVEL})
+if(FETIGER_BUILD_EXAMPLES)
+  add_subdirectory(examples)
+endif()
 
 # ##############################################################################
 # LINKING
