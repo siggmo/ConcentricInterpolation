@@ -41,7 +41,12 @@ find_package(GSL REQUIRED)
 # SOURCES
 # ##############################################################################
 
-add_library(ConInter STATIC)
+option(CONINTER_BUILD_SHARED "Build shared library" OFF)
+if(NOT CONINTER_BUILD_SHARED)
+  add_library(ConInter STATIC)
+else()
+  add_library(ConInter SHARED)
+endif()
 add_library(ConInter::ConInter ALIAS ConInter)
 # since API and internal headers are equivalent for this project, just set the
 # public header paths to src/
