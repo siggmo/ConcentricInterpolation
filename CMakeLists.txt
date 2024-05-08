@@ -22,6 +22,9 @@ if(NOT APPLE)
   set(CMAKE_INSTALL_RPATH $ORIGIN)
 endif()
 
+option(CMAKE_INTERPROCEDURAL_OPTIMIZATION
+       "Enable interprocedural optimization for all targets." ON)
+
 # ##############################################################################
 # REQUIRED PACKAGES
 # ##############################################################################
@@ -75,13 +78,17 @@ include(CMakePackageConfigHelpers)
 install(
   TARGETS ConInter
   EXPORT ConInter
-#   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-#   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  # RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  # LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ConInter_Development
   INCLUDES
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ConInter
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ConInter
   PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ConInter)
+
+# install custom cmake find scripts
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindLAPACKE.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ConInter/customFindScripts)
 
 install(
   EXPORT ConInter
