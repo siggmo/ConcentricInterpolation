@@ -38,12 +38,6 @@ find_package(LAPACKE REQUIRED)
 find_package(GSL REQUIRED)
 
 # ##############################################################################
-# HEADER SEARCH PATHS
-# ##############################################################################
-
-# include_directories(src)
-
-# ##############################################################################
 # SOURCES
 # ##############################################################################
 
@@ -55,8 +49,8 @@ target_include_directories(
   ConInter PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
 add_subdirectory(src)
 
-option(FETIGER_BUILD_EXAMPLES ${PROJECT_IS_TOP_LEVEL})
-if(FETIGER_BUILD_EXAMPLES)
+option(CONINTER_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
+if(CONINTER_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
@@ -67,10 +61,6 @@ endif()
 target_link_libraries(ConInter PRIVATE GSL::gsl lapacke)
 
 # ##############################################################################
-# NAMING
-# ##############################################################################
-
-# ##############################################################################
 # INSTALLING
 # ##############################################################################
 include(GNUInstallDirs)
@@ -78,8 +68,6 @@ include(CMakePackageConfigHelpers)
 install(
   TARGETS ConInter
   EXPORT ConInter
-  # RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  # LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ConInter_Development
   INCLUDES
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ConInter
