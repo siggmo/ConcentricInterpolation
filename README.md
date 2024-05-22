@@ -27,10 +27,10 @@ The Concentric Interpolation method efficiently interpolates multi-dimensional d
 
 ### Requirements
 
-A C++ compiler (e.g. g++), the GNU make utility, the GNU GSL library as well as an implementation of LAPACKE are required. In Debian or Ubuntu systems, the command
+A C++ compiler (e.g. g++), the CMake utility, the GNU GSL library as well as an implementation of LAPACKE are required. In Debian or Ubuntu systems, the command
 
 ```bash
-sudo apt install g++ make liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0
+sudo apt install g++ cmake liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0
 ```
 
 should suffice.
@@ -53,10 +53,10 @@ on Debian or Ubuntu systems. Then, see doxygen output in `./doxygen/html/index.h
 
 ### Compilation and Example
 
-For the library, in the project root run
+For the library, in the project root run (1. configure cmake and generate build files, 2. perform actual build)
 
 ```bash
-cmake --preset ci-linux
+cmake --preset ci-linux [-DFLAGS...=...]
 cmake --build --preset ci-linux
 ```
 
@@ -72,7 +72,7 @@ Alternatively you can use the CMake feature `FetchContent` and refer to this git
 
 Independent of the way you chose to incorporate the library into your project you can use `find_package(ConInter)` and `target_link_libraries(tgt ConInter)` to find and link to the library.
 
-For the examples, to the above commands for building the project add the flag `DCONINTER_BUILD_EXAMPLES=ON`. The executables will be in `build/release/examples`.
+For the examples, use the flag `-DCONINTER_BUILD_EXAMPLES=ON`. The executables will be in `build/release/examples`.
 
 ### How to Cite
 
