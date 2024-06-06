@@ -1,0 +1,2 @@
+pybind11_add_module(pyconinter concentric_interpolation_bindings.cxx)
+target_link_libraries(pyconinter PRIVATE ConInter)

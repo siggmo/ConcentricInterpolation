@@ -29,6 +29,8 @@ option(CMAKE_INTERPROCEDURAL_OPTIMIZATION
 # REQUIRED PACKAGES
 # ##############################################################################
 
+include(FetchContent)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(BLA_STATIC ON)
@@ -36,6 +38,12 @@ set(LAPACKE_STATIC TRUE)
 find_package(LAPACK REQUIRED)
 find_package(LAPACKE REQUIRED)
 find_package(GSL REQUIRED)
+
+FetchContent_Declare(
+  pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG v2.12.0
+)
+FetchContent_MakeAvailable(pybind11)
 
 # ##############################################################################
 # SOURCES
@@ -57,6 +65,11 @@ add_subdirectory(src)
 option(CONINTER_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
 if(CONINTER_BUILD_EXAMPLES)
   add_subdirectory(examples)
+endif()
+
+option(CONINTER_BUILD_PYTHON "Build python bindings" ${PROJECT_IS_TOP_LEVEL})
+if(CONINTER_BUILD_PYTHON)
+  add_subdirectory(python)
 endif()
 
 # ##############################################################################
