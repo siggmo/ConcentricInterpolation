@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.0...3.28)
 
 # ##############################################################################
 # GENERAL SETTINGS
@@ -31,11 +31,15 @@ option(CMAKE_INTERPROCEDURAL_OPTIMIZATION
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(BLA_STATIC ON)
-set(LAPACKE_STATIC TRUE)
-find_package(LAPACK REQUIRED)
-find_package(LAPACKE REQUIRED)
-find_package(GSL REQUIRED)
+option(CONINTER_DEPS_FALLBACK "Skip automatic dependency detection and use hardcoded linker paths." OFF)
+
+if (NOT CONINTER_DEPS_FALLBACK)
+  set(BLA_STATIC ON)
+  set(LAPACKE_STATIC TRUE)
+  find_package(LAPACK REQUIRED)
+  find_package(LAPACKE REQUIRED)
+  find_package(GSL REQUIRED)
+endif()
 
 # ##############################################################################
 # SOURCES
@@ -63,7 +67,12 @@ endif()
 # LINKING
 # ##############################################################################
 
-target_link_libraries(ConInter PRIVATE GSL::gsl lapacke)
+if (NOT CONINTER_DEPS_FALLBACK)
+  target_link_libraries(ConInter PRIVATE GSL::gsl ${LAPACKE_LIBRARIES})
+else()
+  target_link_directories(ConInter PRIVATE "/usr/lib/x86_64-linux-gnu/")
+  target_link_libraries(ConInter PRIVATE gsl lapacke)
+endif()
 
 # ##############################################################################
 # INSTALLING
