@@ -63,6 +63,11 @@ if(CONINTER_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
+option(CONINTER_MKL "Use MKL headers for lapacke and cblas" OFF)
+if(CONINTER_MKL)
+  target_compile_definitions(ConInter PUBLIC CONINTER_MKL)
+endif()
+
 # ##############################################################################
 # LINKING
 # ##############################################################################
