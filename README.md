@@ -2,11 +2,17 @@
 
 ## Content of this file
 
-1. [What's this](#whats-this)
-2. [How to use](#how-to-use)
-3. [Code style and paradigm](#code-style-and-paradigm)
-4. [Bug reporting](#bug-reporting)
-5. [License information](#license-information)
+- [Concentric Interpolation](#concentric-interpolation)
+  - [Content of this file](#content-of-this-file)
+  - [What's this](#whats-this)
+  - [How to use](#how-to-use)
+    - [Requirements](#requirements)
+    - [Documentation](#documentation)
+    - [Compilation and Example](#compilation-and-example)
+    - [How to Cite](#how-to-cite)
+  - [Code style and paradigm](#code-style-and-paradigm)
+  - [Bug reporting](#bug-reporting)
+  - [License information](#license-information)
 
 ## What's this
 
@@ -27,10 +33,10 @@ The Concentric Interpolation method efficiently interpolates multi-dimensional d
 
 ### Requirements
 
-A C++ compiler (e.g. g++), the CMake utility, the GNU GSL library as well as an implementation of LAPACKE are required. In Debian or Ubuntu systems, the command
+A C++ compiler (e.g. g++), the CMake utility, the GNU GSL library (for CBLAS) as well as an implementation of LAPACKE are required. In Debian or Ubuntu systems, the command
 
 ```bash
-sudo apt install g++ cmake liblapacke liblapacke-dev libgsl-dev libgsl23 libgslcblas0
+sudo apt install g++ cmake liblapacke-dev libgsl-dev
 ```
 
 should suffice.
