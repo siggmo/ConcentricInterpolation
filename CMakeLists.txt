@@ -21,6 +21,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Options
 # ##############################################################################
 
+option(CONINTER_BUILD_SHARED "Build ConcentricInterpolation as a shared library." OFF)
+
 option(CONINTER_MKL "Use Intel MKL library for CBLAS and LAPACKE." OFF)
 
 option(CONINTER_DEPS_FALLBACK
@@ -173,7 +175,11 @@ endif()
 # SOURCES
 # ##############################################################################
 
-add_library(ConInter STATIC)
+if(NOT CONINTER_BUILD_SHARED)
+  add_library(ConInter STATIC)
+else()
+  add_library(ConInter SHARED)
+endif()
 add_library(ConInter::ConInter ALIAS ConInter)
 
 if(CONINTER_MKL)
