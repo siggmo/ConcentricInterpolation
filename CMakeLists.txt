@@ -95,11 +95,26 @@ else()
 endif()
 
 if(NOT CONINTER_DEPS_FALLBACK)
-    # The CMake find scripts automatically detect the MKL variants of CBLAS and LAPACKE if setvars has been run.
+    # The CMake find scripts automatically detect the MKL variants of CBLAS and LAPACKE if setvars 
+    # has been run.
+    # TODO: Sometimes if both intel-oneapi-mkl-devel (from Intel's repo, in /opt) and intel-mkl 
+    # (from Debian's repo, in /usr/lib/) are installed, find_package uses the ones in /usr/lib/, 
+    # even though the setvars script has been run.
     set(BLA_STATIC ${CONINTER_DEPS_LINK_STATIC})
     find_package(LAPACK REQUIRED)
     set(LAPACKE_STATIC ${CONINTER_DEPS_LINK_STATIC})
     find_package(LAPACKE REQUIRED)
+
+    # some older FindLAPACK.cmake scripts don't create a target
+    if(NOT TARGET LAPACK::LAPACK)
+        add_library(LAPACK::LAPACK INTERFACE IMPORTED)
+        set_target_properties(
+            LAPACK::LAPACK
+            PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${LAPACK_INCLUDE_DIRS}"
+                    INTERFACE_LINK_DIRECTORIES "${LAPACK_LIBRARY_DIRS}"
+                    INTERFACE_LINK_LIBRARIES "${LAPACK_LIBRARIES}"
+        )
+    endif()
 
     # create target for LAPACKE since our find script doesn't do that.
     add_library(LAPACKE::LAPACKE INTERFACE IMPORTED)
