@@ -95,10 +95,10 @@ else()
 endif()
 
 if(NOT CONINTER_DEPS_FALLBACK)
-    # The CMake find scripts automatically detect the MKL variants of CBLAS and LAPACKE if setvars 
+    # The CMake find scripts automatically detect the MKL variants of CBLAS and LAPACKE if setvars
     # has been run.
-    # TODO: Sometimes if both intel-oneapi-mkl-devel (from Intel's repo, in /opt) and intel-mkl 
-    # (from Debian's repo, in /usr/lib/) are installed, find_package uses the ones in /usr/lib/, 
+    # TODO: Sometimes if both intel-oneapi-mkl-devel (from Intel's repo, in /opt) and intel-mkl
+    # (from Debian's repo, in /usr/lib/) are installed, find_package uses the ones in /usr/lib/,
     # even though the setvars script has been run.
     set(BLA_STATIC ${CONINTER_DEPS_LINK_STATIC})
     find_package(LAPACK REQUIRED)
@@ -111,8 +111,8 @@ if(NOT CONINTER_DEPS_FALLBACK)
         set_target_properties(
             LAPACK::LAPACK
             PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${LAPACK_INCLUDE_DIRS}"
-                    INTERFACE_LINK_DIRECTORIES "${LAPACK_LIBRARY_DIRS}"
-                    INTERFACE_LINK_LIBRARIES "${LAPACK_LIBRARIES}"
+                       INTERFACE_LINK_DIRECTORIES "${LAPACK_LIBRARY_DIRS}"
+                       INTERFACE_LINK_LIBRARIES "${LAPACK_LIBRARIES}"
         )
     endif()
 
@@ -236,13 +236,15 @@ configure_package_config_file(
     INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/ConInter"
     NO_SET_AND_CHECK_MACRO NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ConInterConfig.cmake
-              ${CMAKE_CURRENT_BINARY_DIR}/ConInterConfigVersion.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ConInter
-        COMPONENT ConInter_Development
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/ConInterConfig.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/ConInterConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ConInter
+    COMPONENT ConInter_Development
 )
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/FindLAPACKE.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ConInter/modules
-        COMPONENT ConInter_Development
+install(
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/FindLAPACKE.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ConInter/modules
+    COMPONENT ConInter_Development
 )
