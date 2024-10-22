@@ -148,6 +148,10 @@ else()
                    INTERFACE_LINK_DIRECTORIES "${CONINTER_LAPACKE_LIB}"
                    INTERFACE_LINK_LIBRARIES "${CONINTER_LAPACKE_LIBS}"
     )
+
+    # on some older systems one still has to explicitly link against pthreads
+    find_package(Threads REQUIRED)
+    target_link_libraries(LAPACKE::LAPACKE INTERFACE Threads::Threads)
 endif()
 
 # ##############################################################################
