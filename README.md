@@ -9,7 +9,7 @@
   - [Documentation](#documentation)
   - [Compilation](#compilation)
     - [Configuring a build](#configuring-a-build)
-    - [How to Cite](#how-to-cite)
+  - [How to Cite](#how-to-cite)
   - [Code style and paradigm](#code-style-and-paradigm)
   - [Bug reporting](#bug-reporting)
   - [License information](#license-information)
@@ -99,7 +99,7 @@ The following CMake configuration options exist (set them by `-DOPTION=ON/OFF`):
 - `CONINTER_DEPS_LINK_STATIC`: Link statically against dependencies LAPACK, LAPACKE and BLAS.
   - Default: ON
 
-### How to Cite
+## How to Cite
 
 When referring to this software, please cite the article mentioned above in Section 1 [What's this](#whats-this).
 
