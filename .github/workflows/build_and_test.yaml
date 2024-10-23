@@ -1,0 +1,73 @@
+name: Build and Test
+# Builds ConInter and runs the example.
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{github.event_name == 'pull_request'}}
+
+jobs:
+  build:
+    name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }}
+    runs-on: ubuntu-${{ matrix.UBUNTU_VERSION }}
+    env:
+      CONINTER_BUILD_DIR: build
+    strategy:
+      fail-fast: false
+      matrix:
+        UBUNTU_VERSION: ["24.04", "22.04", "20.04"]
+    steps:
+      - name: Setup environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install liblapacke-dev
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate build directory
+        run: mkdir -p ${{ env.CONINTER_BUILD_DIR }}
+
+      - name: Configure
+        working-directory: ${{ env.CONINTER_BUILD_DIR }}
+        run: |
+          cmake --version
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeCache
+          path: ${{ env.CONINTER_BUILD_DIR }}/CMakeCache.txt
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeLogs
+          path: '${{ env.CONINTER_BUILD_DIR }}/CMakeFiles/*.log'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CompileCommands
+          path: ${{ env.CONINTER_BUILD_DIR }}/compile_commands.json
+
+      - name: Compile
+        working-directory: ${{ env.CONINTER_BUILD_DIR }}
+        run:
+          cmake --build . -j $(nproc) || cmake --build . -j1
+
+      - name: Run example
+        working-directory: ${{ env.CONINTER_BUILD_DIR }}
+        run: examples/ConInter_demo
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CTest logs
+          path: ${{ env.CONINTER_BUILD_DIR }}/Testing/Temporary/LastTest.log
