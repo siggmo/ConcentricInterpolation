@@ -1,0 +1,32 @@
+name: Run checks for markdown, links, and pre-commit
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - "*"
+  workflow_dispatch:
+
+jobs:
+  precommit:
+    name: pre-commit checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          check-latest: true
+      - name: Install pre-commit
+        run: pip install pre-commit
+      - name: Run checks
+        run: pre-commit run -a -v
+      - name: Git status
+        if: always()
+        run: git status
+      - name: Full diff
+        if: always()
+        run: git diff
