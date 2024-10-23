@@ -33,9 +33,16 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <lapacke.h>
 #include <random>
 #include <chrono>
+
+#ifdef CONINTER_MKL
+    #include <mkl_lapacke.h>
+    #include <mkl_cblas.h>
+#else
+    #include <lapacke.h>
+    #include <cblas.h>
+#endif /* CONINTER_MKL */
 
 #ifndef PI
 #define PI 3.14159265358979

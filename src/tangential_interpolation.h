@@ -30,9 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <lapacke.h>
 #include <util.h>
-#include <cblas.h>
 
 class TangentialInterpolation;
 
