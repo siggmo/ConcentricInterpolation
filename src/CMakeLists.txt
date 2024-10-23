@@ -6,13 +6,12 @@
 # ##############################################################################
 
 # Headers
+set(CONINTER_PRIVATE_HEADERS
+    src/radial_interpolation.h src/tangential_interpolation.h src/data.h
+    src/util.h)
 set_target_properties(
-    ConInter
-    PROPERTIES
-        PUBLIC_HEADER src/concentric_interpolation.h
-        PRIVATE_HEADER
-        "src/radial_interpolation.h;src/tangential_interpolation.h;src/data.h;src/util.h"
-)
+  ConInter PROPERTIES PUBLIC_HEADER src/concentric_interpolation.h
+                      PRIVATE_HEADER "${CONINTER_PRIVATE_HEADERS}")
 
 # CI (src/Makefile:34)
 target_sources(ConInter PRIVATE concentric_interpolation.cxx)
