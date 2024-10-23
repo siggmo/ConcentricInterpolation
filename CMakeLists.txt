@@ -125,9 +125,9 @@ else()
     set(CONINTER_LAPACKE_INC "/usr/include")
     set(CONINTER_LAPACKE_LIB "/usr/lib/x86_64-linux-gnu/")
     if(CONINTER_DEPS_LINK_STATIC)
-      set(CONINTER_LAPACKE_LIBS "gfortran;m;liblapacke.a;liblapack.a;libblas.a")
+      set(CONINTER_LAPACKE_LIBS gfortran m liblapacke.a liblapack.a libblas.a)
     else()
-      set(CONINTER_LAPACKE_LIBS "liblapacke.so;liblapack.so;libblas.so")
+      set(CONINTER_LAPACKE_LIBS liblapacke.so liblapack.so libblas.so)
     endif()
   else()
     set(INTEL "$ENV{ONEAPI_ROOT}")
@@ -136,19 +136,12 @@ else()
         "${INTEL}/mkl/latest/lib;${INTEL}/compiler/latest/lib")
 
     if(CONINTER_DEPS_LINK_STATIC)
-      set(CONINTER_LAPACKE_LIBS
-          "m;\
-          dl;\
-          libmkl_intel_lp64.a;\
-          libmkl_intel_thread.a;\
-          libmkl_core.a;libiomp5.a")
+      set(CONINTER_LAPACKE_LIBS m dl libmkl_intel_lp64.a libmkl_intel_thread.a
+                                libmkl_core.a libiomp5.a)
     else()
       set(CONINTER_LAPACKE_LIBS
-          "m;\
-          dl;\
-          libmkl_intel_lp64.so;\
-          libmkl_intel_thread.so;\
-          libmkl_core.so;libiomp5.so")
+          m dl libmkl_intel_lp64.so libmkl_intel_thread.so libmkl_core.so
+          libiomp5.so)
     endif()
   endif()
 
