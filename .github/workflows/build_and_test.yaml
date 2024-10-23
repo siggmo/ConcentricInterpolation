@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }}
+    name: ${{ format('Ubuntu {0}, static={1}, fallback={2}', matrix.UBUNTU_VERSION, matrix.LINK_STATIC, matrix.DEPS_FALLBACK) }}
     runs-on: ubuntu-${{ matrix.UBUNTU_VERSION }}
     env:
       CONINTER_BUILD_DIR: build
@@ -50,17 +50,17 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeCache
+          name: ${{ format('Ubuntu {0}, static={1}, fallback={2}', matrix.UBUNTU_VERSION, matrix.LINK_STATIC, matrix.DEPS_FALLBACK) }} CMakeCache
           path: ${{ env.CONINTER_BUILD_DIR }}/CMakeCache.txt
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeLogs
+          name: ${{ format('Ubuntu {0}, static={1}, fallback={2}', matrix.UBUNTU_VERSION, matrix.LINK_STATIC, matrix.DEPS_FALLBACK) }} CMakeLogs
           path: '${{ env.CONINTER_BUILD_DIR }}/CMakeFiles/*.log'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CompileCommands
+          name: ${{ format('Ubuntu {0}, static={1}, fallback={2}', matrix.UBUNTU_VERSION, matrix.LINK_STATIC, matrix.DEPS_FALLBACK) }} CompileCommands
           path: ${{ env.CONINTER_BUILD_DIR }}/compile_commands.json
 
       - name: Compile
@@ -75,5 +75,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CTest logs
+          name: ${{ format('Ubuntu {0}, static={1}, fallback={2}', matrix.UBUNTU_VERSION, matrix.LINK_STATIC, matrix.DEPS_FALLBACK) }} CTest logs
           path: ${{ env.CONINTER_BUILD_DIR }}/Testing/Temporary/LastTest.log
