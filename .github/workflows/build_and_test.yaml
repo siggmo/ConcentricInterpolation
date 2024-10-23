@@ -68,6 +68,11 @@ jobs:
         run:
           cmake --build . -j $(nproc) || cmake --build . -j1
 
+      - name: Run ldd
+        working-directory: ${{ env.CONINTER_BUILD_DIR }}
+        run:
+          ldd examples/ConInter_demo
+
       - name: Run example
         working-directory: ${{ env.CONINTER_BUILD_DIR }}
         run: examples/ConInter_demo
