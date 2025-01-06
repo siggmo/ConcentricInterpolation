@@ -74,16 +74,16 @@ set(CMAKE_INSTALL_RPATH
 
 if(CONINTER_MKL)
   if(NOT "$ENV{SETVARS_COMPLETED}" STREQUAL "1")
-    message(FATAL_ERROR "Intel OneAPI setvars script must be run first! \
-        (source /opt/intel/oneapi/setvars.sh)")
+    message(STATUS "Intel OneAPI setvars script has not been run. Might not be \
+    able to find MKL.")
   endif()
   set(BLA_VENDOR "Intel10_64lp")
 else()
   if("$ENV{SETVARS_COMPLETED}" STREQUAL "1")
     message(
-      FATAL_ERROR
-        "Intel OneAPI environment is active, but CONINTER_MKL is not set. \
-        Either deactivate OneAPI environment, or set CONINTER_MKL.")
+      STATUS
+        "Intel OneAPI environment is active, but CONINTER_MKL is not set. This \
+        might impact which LAPACK and BLAS libraries are found.")
   endif()
   set(BLA_VENDOR "Generic")
 endif()
